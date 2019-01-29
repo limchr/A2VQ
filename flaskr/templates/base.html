@@ -1,0 +1,109 @@
+<!--
+#!/usr/bin/env python
+#
+# Copyright (C) 2019
+# Christian Limberg
+# Centre of Excellence Cognitive Interaction Technology (CITEC)
+# Bielefeld University
+#
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+# and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+# products derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+-->
+
+<!doctype html>
+
+<!-- base template that every other template is derive from -->
+
+
+<html>
+<head>
+  <title>{% block title %}{% endblock %}</title>
+
+  <link href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
+
+
+</head>
+
+<body style="background-color: rgba(230,230,230,1);">
+
+<header>
+      <div class="collapse bg-dark" id="navbarHeader">
+        <div class="container">
+          <div class="row">
+            <div class="col-sm-8 col-md-7 py-4">
+              <h4 class="text-white">About</h4>
+              <p class="text-muted">Active label UI alpha 1</p>
+            </div>
+            <div class="col-sm-4 offset-md-1 py-4">
+              <h4 class="text-white">Active Label UI</h4>
+              <ul class="list-unstyled">
+                <li><b>User study</b></li>
+                <li><a href="new_participant" class="text-white">Inititalize new participant</a></li>
+                <li><a href="experiments_frontpage" class="text-white">Experiments frontpage</a></li>
+
+
+
+                <li><b>Debug</b></li>
+                <li><a href="init_db" class="text-white">Initialize data set and thumbnails</a></li>
+                <li><a href="init_labels" class="text-white">Initialize empty labels</a></li>
+                <li><a href="build_embedding" class="text-white">Train new embedding</a></li>
+                <li><a href="embedding_view" class="text-white">Whole Embedding view</a></li>
+              <!--<li><a href="embedding_view_partial" class="text-white">Label view</a></li>-->
+                <li><a href="embedding_view_query" class="text-white">Query view</a></li>
+                <li><a href="embedding_view_labeled" class="text-white">Labeled samples view</a></li>
+                <!--<li><a href="evaluation" class="text-white">Evaluation</a></li>
+                <li><a href="statistics" class="text-white">Statistics</a></li>-->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="navbar navbar-dark bg-dark box-shadow">
+        <div class="container d-flex justify-content-between">
+          <a href="#" class="navbar-brand d-flex align-items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <strong>Active Label UI</strong>
+          </a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader" aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+<main>
+
+<div class="container" id="inner_content" >
+  {% block header %}{% endblock %}
+  {% block content %}{% endblock %}
+</div>
+
+  </main>
+
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap/bootstrap.min.js') }}"></script>
+
+    {% block bottombody %}{% endblock %}
+
+</body>
+
+</html>

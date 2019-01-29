@@ -1,0 +1,326 @@
+<!--
+#!/usr/bin/env python
+#
+# Copyright (C) 2019
+# Christian Limberg
+# Centre of Excellence Cognitive Interaction Technology (CITEC)
+# Bielefeld University
+#
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+# and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+# products derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+-->
+
+
+<!-- template for showing a2vq label interface-->
+
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Embedding label view{% endblock %}</h1>
+
+
+    {% if started %}
+    {{ current_duration }} seconds left for this experiment
+    {% endif %}
+
+
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-3">
+      <!--<input type="text" class="form-control" id="label_name" placeholder="Labelname" />-->
+        <div class="form-group">
+          <select class="form-control" id="label_name">
+            {% for m in label_names %}
+            <option>{{m}}</option>
+            {% endfor %}
+          </select>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-primary btn-block" class="form-control " id="label_button">Label Selection</button>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-warning btn-block" class="form-control " id="remove_button">Remove Selection</button>
+    </div>
+        <div class="col-md-3">
+          <a href="embedding_view_query" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Next View</button></a>
+    </div>
+
+  </div>
+</div>
+<div class="container mt-3" id="canvas_container" style="position: relative;">
+
+<canvas id="myCanvas" style="z-index: 5; position: absolute; top: 0px; border:1px solid #d3d3d3; cursor: crosshair;">
+</canvas>
+
+<canvas id="mySelectionCanvas" style="z-index: 15; position: absolute; top: 0px; border:1px solid #d3d3d3; cursor: crosshair;">
+</canvas>
+
+</div>
+
+<script>
+
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+}
+
+function get_mouse_xy(can, e) {
+  var element = can, offsetX = 0, offsetY = 0, mx, my;
+  if (element.offsetParent !== undefined) {
+    do {
+      offsetX += element.offsetLeft;
+      offsetY += element.offsetTop;
+    } while ((element = element.offsetParent));
+  }
+  mx = e.pageX - offsetX;
+  my = e.pageY - offsetY;
+  return {x: mx, y: my};
+}
+
+function selection_intersects(selection, point) {
+  return point[0] >= selection[0] && point[0] <= selection[1] && point[1] >= selection[2] && point[1] <= selection[3];
+}
+
+
+
+function draw_everything(){
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  ctx2.clearRect(0, 0, c.width, c.height);
+
+  draw_imgs();
+  draw_selections();
+}
+
+
+function draw_imgs(){
+  for (var i=0;i<x_embedding.length;++i) {
+    var img = new Image;
+    img.src = "{{thumb_dir}}/"+pad(indices[i],6)+".jpg"
+    img.i = i;
+    img.onload = function() {
+      ctx.drawImage(this, x_embedding[this.i][0]*(dim_canvas[0]-dim_img[0])+0,x_embedding[this.i][1]*(dim_canvas[1]-dim_img[1])+0,dim_img[0],dim_img[1]);
+    };
+
+  }
+}
+
+
+
+function label_selected(){
+
+
+
+  selected = []
+  for (var i=0;i<x_embedding.length;++i) {
+    for (var s=0;s<selections.length;++s){
+      if(selection_intersects(selections[s],[x_embedding[i][0]*(dim_canvas[0]-dim_img[0]) + dim_img[0]/2  , x_embedding[i][1]*(dim_canvas[1]-dim_img[1]) + dim_img[1]/2 ])) {
+        if($.inArray(i, selected) === -1) {
+          selected.push(i);
+        }
+      }
+    }
+  }
+  if(selected.length == 0){
+  return;
+  }
+
+  $('#label_button').addClass('disabled');
+  $('#next_view_button').addClass('disabled');
+
+    $('#label_button').addClass('btn-warning');
+  $('#next_view_button').addClass('btn-warning');
+  $('#next_view_link').attr('href', '#');
+
+   $.ajax({
+          type: "POST",
+          cache: false,
+          data:{'label':$('#label_name').val(),'indices': indices, 'selected': selected, 'num_rects': selections.length},
+          url: '/add_labels',
+          dataType: "json",
+          success: function(data) {
+            if(data["success"] == 'false'){
+              window.open(data["open_page"],"_self");
+            }
+              console.log(data);
+                $('#label_button').removeClass('disabled');
+                          $('#next_view_button').removeClass('disabled');
+                                          $('#label_button').removeClass('btn-warning');
+                          $('#next_view_button').removeClass('btn-warning');
+                              $('#label_button').addClass('btn-primary');
+  $('#next_view_button').addClass('btn-success');
+  $('#next_view_link').attr('href', 'embedding_view_query');
+
+          },
+          error: function(jqXHR) {
+              alert("error: " + jqXHR.status);
+              console.log(jqXHR);
+                $('#label_button').removeClass('disabled');
+                          $('#next_view_button').removeClass('disabled');
+                                          $('#label_button').removeClass('btn-warning');
+                          $('#next_view_button').removeClass('btn-warning');
+                              $('#label_button').addClass('btn-primary');
+  $('#next_view_button').addClass('btn-success');
+  $('#next_view_link').attr('href', 'embedding_view_query');
+
+
+          }
+
+      });
+
+  selected.sort(function(a,b){ return a-b; });
+  console.log(selected);
+
+  for (var i = selected.length -1; i >= 0; i--){
+    x_embedding.splice(selected[i],1)
+    indices.splice(selected[i],1)
+  }
+
+
+}
+
+document.addEventListener("DOMContentLoaded", function(event) {
+  w = $('#canvas_container').width();
+  dim_canvas = [w,w*0.75];
+  dim_img = [dim_canvas[0]/15,dim_canvas[0]/15];
+  c.width = dim_canvas[0];
+  c.height = dim_canvas[1];
+
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+  ctx.fillRect(0, 0, c.width, c.height);
+
+
+  c2.width = dim_canvas[0];
+  c2.height = dim_canvas[1];
+  ctx2.clearRect(0, 0, c2.width, c2.height);
+
+
+
+
+  draw_imgs();
+
+  //register callbacks
+  $('#label_button').click(function(){label_selected();selections = []; draw_everything();});
+  $('#remove_button').click(function(){selections = []; draw_everything();});
+});
+
+
+
+
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+
+var c2 = document.getElementById("mySelectionCanvas");
+var ctx2 = c2.getContext("2d");
+
+
+var dim_canvas = [1500,800];
+var dim_img = [50,50];
+
+var x_embedding = {{x_embedding|tojson}};
+var indices = {{indices|tojson}};
+
+var selection_begin = false;
+var selection_start = {};
+var selections = [];
+
+
+function draw_selections(){
+    ctx2.clearRect(0, 0, c.width, c.height);
+    ctx2.fillStyle = 'rgba(77, 100, 141, .5)';
+    for (var s=0;s<selections.length;++s){
+      ctx2.fillRect(selections[s][0],selections[s][2],(selections[s][1]-selections[s][0]),(selections[s][3]-selections[s][2]));
+    }
+}
+function draw_selection(x,y,w,h){
+    ctx2.fillStyle = 'rgba(40, 54, 85, .5)';
+    ctx2.fillRect(x,y,w,h);
+}
+
+
+c2.addEventListener('mousedown', function(e) {
+    if(selection_begin) return;
+    selection_begin = true;
+    selection_start = get_mouse_xy(c2, e);
+    console.log('selection was started on '+selection_start.x+' '+selection_start.y);
+
+  }, true);
+
+c2.addEventListener('mousemove', function(e) {
+    if(selection_begin) {
+      selection_moved = get_mouse_xy(c2, e);
+      console.log('selection was moved on '+selection_moved.x+' '+selection_moved.y);
+
+      draw_selections();
+      min_x = Math.min(selection_start.x, selection_moved.x)
+      max_x = Math.max(selection_start.x, selection_moved.x)
+      min_y = Math.min(selection_start.y, selection_moved.y)
+      max_y = Math.max(selection_start.y, selection_moved.y)
+
+      draw_selection(min_x,min_y,(max_x-min_x),(max_y-min_y));
+
+    }
+
+
+  }, true);
+
+
+c2.addEventListener('mouseup', function(e) {
+    if(selection_begin) {
+      selection_begin = false;
+      var mouse = get_mouse_xy(c2, e);
+
+      if (mouse.x == selection_start.x && mouse.y == selection_start.y){
+        console.log('selection too small, skipping');
+        return;
+      }
+
+      console.log('selection was ended on '+mouse.x+' '+mouse.y);
+
+      min_x = Math.min(selection_start.x, mouse.x)
+      max_x = Math.max(selection_start.x, mouse.x)
+      min_y = Math.min(selection_start.y, mouse.y)
+      max_y = Math.max(selection_start.y, mouse.y)
+
+      selections.push([min_x,max_x,min_y,max_y]);
+
+      draw_selections();
+
+
+    }
+
+  }, true);
+
+
+
+</script>
+
+{% endblock %}
