@@ -58,8 +58,6 @@ app = Flask(__name__)
 
 
 
-
-
 @app.route('/embedding_view_query')
 def embedding_view_query():
     ''' this page displays A2VQ labeling interface '''

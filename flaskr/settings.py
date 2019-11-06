@@ -45,6 +45,8 @@ EMBEDDING_FUN = embedding_tsne
 ''' define a name for the data set here, this is used to load e.g. thumbnails from the static directory'''
 FILE_NAME_PREFIX = 'robot'
 
+''' path with images (e.g. mnist)'''
+IMAGE_PATH = '/homes/climberg/src/min_workspace/data/objects/'
 
 ''' path with images (e.g. mnist)'''
 IMAGE_PATH = '/homes/climberg/src/min_workspace/data/objects/'
