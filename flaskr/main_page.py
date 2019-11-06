@@ -46,11 +46,10 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 
+from flaskr.helper import *
 from flaskr.intelligent_labeling import *
 from flaskr.settings import *
 
-from flaskr.helper import setup_clean_directory
-from flaskr.helper import normalize_features
 from flaskr.glvq import glvq
 from flaskr.dbscan import dbscan
 
@@ -62,48 +61,10 @@ app = Flask(__name__)
 
 
 
-def label_samples(indices, label):
-    '''helper function for fast writing new labels in label file '''
-    labels = pkl.load(open(LABEL_FILE,'rb'))
-    labels[indices] = label
-    pkl.dump(labels, open(LABEL_FILE,'wb'))
-
-
 
 #############################
 # Functions for user study
 #############################
-
-@app.route('/')
-@app.route('/new_participant')
-def new_participant():
-    ''' show the form for register a new participant'''
-    return render_template('new_participant.html')
-
-@app.route('/new_participant', methods = ['POST'])
-def new_participantform():
-    ''' take the ID of the new created participant and create a configfile which has the actual '''
-    config = configparser.ConfigParser()
-    config['participant'] = {'id': request.form['id'],'finished_a': False, 'finished_b': False, 'finished_c': False, 'finished_d': False, 'finished_demo': False}
-    config['experiment'] = {'started': False, 'type': -1, 'started_timestamp': -1, 'duration': EXPERIMENTS_DURATION}
-    config['a2vq_helper'] = {'first_queried_x': -1, 'first_queried_y': -1, 'queried_index': 0}
-    with open('config.cfg', 'w') as f:
-        config.write(f)
-
-    setup_clean_directory(os.path.join('participants/',request.form['id']))
-
-    return experiments_frontpage()
-
-
-@app.route('/experiments_frontpage')
-def experiments_frontpage():
-    ''' frontpage showing buttons for starting particular experiments '''
-    config = configparser.ConfigParser()
-    config.read('config.cfg')
-
-    return render_template('experiments_frontpage.html', finished_a=config['participant']['finished_a']=='True', finished_b=config['participant']['finished_b']=='True', finished_c=config['participant']['finished_c']=='True', finished_d=config['participant']['finished_d']=='True',finished_demo=config['participant']['finished_demo']=='True')
-
-
 @app.route('/start_experiment')
 def start_experiment():
     ''' starts a particular experiment and setting the config files. initializes an untrained classifier for training.'''
@@ -140,8 +101,6 @@ def start_experiment():
         return embedding_view_query()
     else:
         return classic_label_view()
-
-
 
 
 
@@ -260,111 +219,91 @@ def add_labels():
 
 
 
-@app.route('/classic_label_view')
-def classic_label_view():
-    ''' this label view shows a single sample and enables labeling it with use of a dropdown menu'''
-    config = configparser.ConfigParser()
-    config.read('config.cfg')
-    started = config['experiment']['started'] == 'True'
-    current_duration = 0
-
-    labels = pkl.load(open(LABEL_FILE, 'rb'))
-    mask_unlabeled = labels == -1
-    mask_labeled = np.logical_and(labels != -1, labels != 'skipped')
-
-    features,groundtruth_labels = get_train_set(FN_LOAD_DATASET(False))
-    features_test, groundtruth_labels_test = get_test_set(FN_LOAD_DATASET(False))
-    cls = pkl.load(open(CLASSIFIER_FILE,'rb'))
-
-    labeled_index = request.args.get('index')
-    label = request.args.get('label')
-
-    if (labeled_index is not None) and (label is not None): # train new labeled instance
-        labeled_index = int(labeled_index)
-        print('label single image: '+str(labeled_index))
-        if label != 'skipped': # train new sample
-            cls.fit([features[labeled_index]], [label])
-        else: #dbqe approach to exclude ambiguous samples from querying
-            unlabeled_is = np.where(mask_unlabeled)[0]
-            unlabeled_x = features[mask_unlabeled]
-            distances_to_unrecognizable = cdist([features[labeled_index]], unlabeled_x)[0]
-            # distances_filter = distances_to_unrecognizable < max_dist
-            ex_inds = np.argsort(distances_to_unrecognizable)[:20] # max exclude 20 samples
-
-            dists = cdist(unlabeled_x[ex_inds], unlabeled_x[ex_inds], 'euclidean')
-            delete_im = dbscan.DBQE(unlabeled_x[ex_inds], 0, 50, 3, dists=dists)
-            delete_im[0] = True  # always delete unrecognizable sample
-            delete_i = ex_inds[delete_im]
-            print('EXCLUDED '+str(len(delete_i))+' possible ambiguous samples from querying')
-            labels[unlabeled_is[delete_i]] = 'skipped'
-
-        # save new trained classifier
-        pkl.dump(cls, open(CLASSIFIER_FILE, 'wb'))
-
-
-        score = cls.score(features, groundtruth_labels)
-        score_test = cls.score(features_test, groundtruth_labels_test)
-        label_samples([labeled_index],label)
-
-        # check if experiment has finished
-        if started:
-            current_duration = time.time() - float(config['experiment']['started_timestamp'])
-            with open(os.path.join('participants/', config['participant']['id'], config['experiment']['type'] + '.csv'),"a") as f:
-                append = [config['participant']['id'], str(current_duration), str(labeled_index), label, groundtruth_labels[labeled_index],str(score),str(score_test)]
-                f.write(';'.join(append) + '\n')
-            if current_duration > float(config['experiment']['duration']):
-                config['experiment']['started'] = 'False'
-                config['experiment']['started_timestamp'] = '-1'
-                config['participant']['finished_' + config['experiment']['type']] = 'True'
-                with open('config.cfg', 'w') as f:
-                    config.write(f)
-
-                return experiments_frontpage()
-
-    #
-    # classical querying approaches
-    #
-    if(config['experiment']['type'] == 'b'):
-        # uncertainty sampling
-        probas = cls.predict_proba(features[mask_unlabeled])
-        if(not probas.any()):
-            min_i_unlabeled = random.randint(0,len(probas)-1)
-        else:
-            min_i_unlabeled = np.argmin(probas)
-    elif(config['experiment']['type'] == 'c'):
-        # random sampling
-        min_i_unlabeled = random.randint(0, len(features[mask_unlabeled]) - 1)
-    elif(config['experiment']['type'] == 'd'):
-        # query by commitee
-        min_i_unlabeled = None
-        if hasattr(cls,'x'):
-            min_i_unlabeled = qbc_querying(cls.x,cls.y,features[mask_unlabeled],1)
-        if min_i_unlabeled is None:
-            min_i_unlabeled = random.randint(0, len(features[mask_unlabeled]) - 1)
-        else:
-            min_i_unlabeled = min_i_unlabeled[0]
-    min_i = np.array(list(range(len(features))))[mask_unlabeled][min_i_unlabeled]
-
-    return render_template('classic_label_view.html', label_names = np.unique(groundtruth_labels).tolist(), queried = min_i,thumb_dir = THUMBS_DIR_HTTP, started = started, current_duration = int(EXPERIMENTS_DURATION-current_duration))
-
-
-
 
 #
 # Functions that need to be called for preparation
 #
 
-@app.route('/init_db')
-def init_db():
-    ''' save data set as thumbnails in static directory, for loading by the browser '''
-    from common.images import write_image
-    dataset = get_train_set(FN_LOAD_DATASET(True))
+
+from common.helper import get_files_of_type
+
+@app.route('/update_db')
+def update_db():
+    #pdb.set_trace()
+    #update labels file
+    current_db = get_image_filenames()
+    all_images = get_files_of_type(IMAGE_PATH, 'jpg')
+    new_images = get_elements_not_in(all_images, current_db)
+    num_samples = len(new_images)
+    new_labels = np.zeros(num_samples, dtype=str)
+    new_labels_combined = np.vstack((new_images, new_labels)).T
+    old_labels = read_csv(LABEL_FILE)
+    save_csv(np.vstack((old_labels,new_labels_combined)), LABEL_FILE)
+
+    # calculate features of new images
+    new_feats, _, new_img_tuple = feature_extraction_of_arbitrary_image_ds(IMAGE_PATH, new_images)
+
+    # update images dump file
+    with open(IMAGES_FILE, 'rb') as f:
+        images_file = pkl.load(f)
+    new_image_file = np.vstack((images_file, new_img_tuple))
+    with open(IMAGES_FILE,'wb') as f:
+        pkl.dump(new_image_file, f)
+    # write new thumbnails
+    for i in range(len(new_img_tuple)):
+        write_image(new_img_tuple[i], os.path.join(THUMBS_DIR, '%06d.jpg' % (len(current_db)+i)))
+
+
+    # save new features file
+    with open(FEATURES_FILE, 'rb') as f:
+        feature_file = pkl.load(f)
+    new_feature_file = np.vstack((feature_file, new_feats))
+    with open(FEATURES_FILE,'wb') as f:
+        pkl.dump(new_feature_file, f)
+
+    # recalculate embedding
+    do_build_embedding()
+
+    return 'updated db with '+str(len(new_feats))+' new images'
+
+
+
+@app.route('/delete_db')
+def delete_db():
+    '''delete label, feature, embedding file and thumbs directory'''
+    pass
+
+
+from common.images import write_image
+
+from common.helper import save_csv
+from common.data_handler.create_arbitrary_image_ds import feature_extraction_of_arbitrary_image_ds
+@app.route('/init_everything')
+def init_everything():
+    '''initialize everything (call at first run)'''
+    feats, image_list, img_tuple = feature_extraction_of_arbitrary_image_ds(IMAGE_PATH)
+
+    num_samples = len(image_list)
+    labels = np.zeros(num_samples, dtype=str)
+    label_file = np.vstack((image_list, labels)).T
+    save_csv(label_file, LABEL_FILE)
+
+    with open(FEATURES_FILE,'wb') as f:
+        pkl.dump(feats, f)
+
+
+    with open(IMAGES_FILE,'wb') as f:
+        pkl.dump(img_tuple, f)
     setup_clean_directory(THUMBS_DIR)
-    for i in range(len(dataset[2])):
-        write_image(dataset[2][i], os.path.join(THUMBS_DIR, '%06d.jpg' % (i)))
+    for i in range(len(img_tuple)):
+        write_image(img_tuple[i], os.path.join(THUMBS_DIR, '%06d.jpg' % (i)))
+
+
+
+
     return 'Done'
 
-@app.route('/init_labels')
+@app.route('/reset_labels')
 def init_labels():
     ''' init labels file for saving labeled and unlabeled instances. '''
     features = get_train_set(FN_LOAD_DATASET(False))[0]
@@ -374,21 +313,19 @@ def init_labels():
     pkl.dump(DEFAULT_VIEW_SIZE,open(VIEW_SIZE_FILE,'wb'))
     return 'Done'
 
-@app.route('/build_embedding')
-def build_embedding():
+@app.route('/do_build_embedding')
+def do_build_embedding():
     ''' build the embedding to use '''
-    features = get_train_set(FN_LOAD_DATASET(False))[0]
-    x_embedding = TSNE(n_components=2,random_state=42).fit_transform(features)
-    pkl.dump(x_embedding,open(EMBEDDING_FILE,'wb'))
+    with open(FEATURES_FILE, 'rb') as f:
+        feature_file = pkl.load(f)
+    build_embedding(feature_file)
     return 'Done'
-
-
 
 
 #
 # Debugging view of visualization embedding
 #
-
+@app.route('/')
 @app.route('/embedding_view')
 def embedding_view():
     '''display whole embedding'''
@@ -396,34 +333,46 @@ def embedding_view():
         x_embedding = pkl.load(open(EMBEDDING_FILE,'rb'))
     except:
         return 'can not create embedding. please call first: /init_db /init_labels and /build_embedding'
-
-    x_embedding_normalized = normalize_features(x_embedding)
-    return render_template('embedding_view.html', indices = list(range(len(x_embedding_normalized))), x_embedding = x_embedding_normalized[:,:].tolist(), thumb_dir = THUMBS_DIR_HTTP)
+    return render_template('embedding_view.html', indices = list(range(len(x_embedding))), x_embedding = x_embedding.tolist(), thumb_dir = THUMBS_DIR_HTTP)
 
 @app.route('/embedding_view_partial')
 def embedding_view_partial():
     ''' display a predefined view of embedding '''
-    x_embedding = pkl.load(open('embedding.pkl','rb'))
+    try:
+        x_embedding = pkl.load(open(EMBEDDING_FILE,'rb'))
+    except:
+        return 'can not create embedding. please call first: /init_db /init_labels and /build_embedding'
 
-    mask = filter_embedding(x_embedding,(0.5,0.5),(0.2,0.2))
+    mask = filter_embedding(x_embedding,(0.2,0.2),(0.6,0.6))
     x_embedding_filter_normalized = normalize_features(x_embedding[mask])
 
-    return render_template('embedding_view.html', indices = np.where(mask)[0].tolist(), x_embedding = x_embedding_filter_normalized[:,:].tolist(),thumb_dir = THUMBS_DIR_HTTP)
+    return render_template('embedding_view.html', indices = np.where(mask)[0].tolist(), x_embedding = x_embedding_filter_normalized.tolist(),thumb_dir = THUMBS_DIR_HTTP)
+
+from flaskr.data_handler import *
 
 @app.route('/embedding_view_labeled')
 def embedding_view_labeled():
-    ''' display only the labeled instances '''
-    x_embedding = pkl.load(open('embedding.pkl','rb'))
-    labels = pkl.load(open('/hri/storage/user/climberg/datasets/outdoor/active_label_ui/labels.pkl','rb'))
+    '''display whole embedding'''
+    try:
+        x_embedding = pkl.load(open(EMBEDDING_FILE,'rb'))
+    except:
+        return 'can not create embedding. please call first: /init_db /init_labels and /build_embedding'
+    x_embedding_selection = x_embedding[get_labeled_i()]
+    return render_template('embedding_view.html', indices = list(range(len(x_embedding_selection))),
+                           x_embedding = x_embedding_selection.tolist(), thumb_dir = THUMBS_DIR_HTTP)
 
-    x_embedding_normalized = normalize_features(x_embedding)
-    mask = labels != -1
-    x_embedding_labeled = x_embedding_normalized[mask]
+@app.route('/embedding_view_unlabeled')
+def embedding_view_unlabeled():
+    '''display whole embedding'''
+    try:
+        x_embedding = pkl.load(open(EMBEDDING_FILE, 'rb'))
+    except:
+        return 'can not create embedding. please call first: /init_db /init_labels and /build_embedding'
+    x_embedding_selection = x_embedding[get_unlabeled_i()]
+    return render_template('embedding_view.html', indices=list(range(len(x_embedding_selection))),
+                           x_embedding=x_embedding_selection.tolist(), thumb_dir=THUMBS_DIR_HTTP)
 
-    x_embedding_labeled_normalized = normalize_features(x_embedding_labeled)
-
-    return render_template('embedding_view.html', indices = np.where(mask)[0].tolist(), x_embedding = x_embedding_labeled_normalized[:,:].tolist(),thumb_dir = THUMBS_DIR_HTTP)
-
+    #x_embedding_labeled_normalized = normalize_features(x_embedding_labeled)
 
 
 

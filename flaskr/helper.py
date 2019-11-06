@@ -72,9 +72,38 @@ def array_is_in_array(arr1,arr2):
         rtn = np.logical_or(rtn,arr1 == e)
     return rtn
 
+
+
 def normalize_features(features, scale = (0,1)):
     normalized = np.zeros(features.shape)
     for i in range(features.shape[1]):
         min, max = np.min(features[:, i]), np.max(features[:, i])
         normalized[:, i] = (features[:, i] - min) / (max - min) * (scale[1]-scale[0]) + scale[0]
     return normalized
+
+
+def get_intersection(arr1, arr2):
+    rtn = []
+    for a1 in arr1:
+        if a1 in arr2:
+            rtn.append(a1)
+    return rtn
+
+def get_union(arr1, arr2):
+    return list(set(arr1) | set(arr2))
+
+def get_elements_not_in(arr1, arr2):
+    '''returns elements from arr1 that are not in arr2'''
+    rtn = []
+    for a1 in arr1:
+        if not a1 in arr2:
+            rtn.append(a1)
+    return rtn
+
+if __name__ == '__main__':
+    list1 = [4,6,1,0]
+    list2 = [6,1,1,10]
+
+    print(get_intersection(list1,list2))
+    print(get_union(list1,list2))
+    print(get_elements_not_in(list1,list2))

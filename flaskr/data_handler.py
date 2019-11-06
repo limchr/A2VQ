@@ -33,65 +33,87 @@ import pickle as pkl
 
 from mnist import MNIST
 import numpy as np
+import pandas as pd
 import os
 
 from flaskr.settings import *
+from flaskr.helper import normalize_features
+
+#from common.data_handler.create_arbitrary_image_ds import create_arbitrary_image_ds
+from common.data_handler.load_arbitrary_image_ds import load_arbitrary_image_ds
+from common.helper import read_csv, save_csv
 
 
-#
-# Dataset functions. If you want to use an own data set, you have to implement a function here which looks like:
-# def my_fancy_ds(load_images=False)
-#
-# if load_images==True it returns a tuple with (features,labels,images) [everything as a numpy array]
-# otherwise it just returns a tuple with (features,labels)
+def update_everything():
+    '''update everything because new data is available for labeling'''
+    extract_features()
+    build_embedding()
+    create_thumbs()
+
+def extract_features():
+    '''extract features of newly recorded images (which are not already in feature set) and extend feature set'''
+    pass
+
+def build_embedding(x):
+    '''build embedding and save as dump for fast loading'''
+    x_embedding = EMBEDDING_FUN(x)
+    x_embedding_normalized = normalize_features(x_embedding)
+
+    with open(EMBEDDING_FILE, 'wb') as f:
+        pkl.dump(x_embedding_normalized, f)
 
 
-def load_mnist(num_data=None,filter_labels=None,path=''):
-    # Load the dataset
-    (x_train, y_train) = MNIST(os.path.join(path,'mnist_original')).load_training()
-    (x_test, y_test) = MNIST(os.path.join(path,'mnist_original')).load_testing()
+def create_thumbs():
+    '''create thumbnails not already there of all images for showing over HTTP'''
+    pass
 
 
-    x_train = np.array(x_train,dtype=np.float32)
-    x_test = np.array(x_test,dtype=np.float32)
-    y_train = np.array(y_train,dtype=np.uint32)
-    y_test = np.array(y_test,dtype=np.uint32)
-
-    # Rescale -1 to 1
-    x_train = (x_train - 127.5) / 127.5
-    #x_train = np.expand_dims(x_train, axis=3)
-    # Rescale -1 to 1
-    x_test = (x_test - 127.5) / 127.5
-    #x_test = np.expand_dims(x_test, axis=3)
-
-    x_train = x_train.reshape((len(x_train), 28, 28, 1))
-    x_test = x_test.reshape((len(x_test), 28, 28, 1))
+def ds_robot(load_images = False):
+    '''load robot image data set'''
+    rtn = load_arbitrary_image_ds('/homes/climberg/src/min_workspace/data/', load_images)
+    return rtn
 
 
-    #filter specific labels out
-    if filter_labels != None:
-        inds = np.where([True if yy in filter_labels else False for yy in y_train])
-        x_train = x_train[inds]
-        y_train = y_train[inds]
-        inds = np.where([True if yy in filter_labels else False for yy in y_test])
-        x_test = x_test[inds]
-        y_test = y_test[inds]
+def init_classifier():
+    from machine_learning_models.glvq import glvq
+    cls = glvq()
+    with open(CLASSIFIER_FILE, 'wb') as f:
+        pkl.dump(cls,f)
 
-    #limit the number of samples
-    if num_data != None:
-        return x_train[:num_data],y_train[:num_data]
-    else:
-        return x_train,y_train
+def get_classifier():
+    with open(CLASSIFIER_FILE, 'rb') as f:
+        cls = pkl.load(f)
+    return cls
 
-def ds_mnist(load_images = False):
-    '''load mnist data set'''
-    from flaskr.settings import DATA_PATH
-    ret = load_mnist(num_data=500, path=DATA_PATH)
-    features = ret[0].reshape((ret[0].shape[0], 28 * 28))
-    labels = ret[1]
-    labels = np.array([str(l) for l in labels])
-    if load_images:
-        imgs = np.squeeze(ret[0])
-        return features, labels, imgs
-    else:
-        return features, labels
+def get_features():
+    with open(EMBEDDING_FILE, 'rb') as f:
+        return pkl.load(FEATURES_FILE)
+
+
+def get_image_filenames():
+    '''return the image filenames of the current data base'''
+    return read_csv(LABEL_FILE)[:,0]
+
+def get_labels():
+    '''return all labels'''
+    return read_csv(LABEL_FILE)[:, 1]
+
+
+def get_unlabeled_i():
+    '''return all unlabeled_indices'''
+    return np.where(pd.isnull(read_csv(LABEL_FILE)[:, 1]))[0]
+
+def get_labeled_i():
+    '''return all labeled indices'''
+    return np.where(np.invert(pd.isnull(read_csv(LABEL_FILE)[:, 1])))[0]
+
+def label_samples(indices, label):
+    '''helper function for fast writing new labels in label file '''
+    labels = read_csv(LABEL_FILE)
+    labels[indices,1] = label
+    save_csv(labels, LABEL_FILE)
+
+
+if __name__ == '__main__':
+    labels = get_labels()
+    get_image_filenames()
