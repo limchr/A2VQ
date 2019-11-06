@@ -29,39 +29,40 @@
 
 
 import os
-from flaskr.data_handler import ds_mnist
 from flaskr.helper import create_directory_if_not_defined
-
+from flaskr.intelligent_labeling import embedding_tsne, embedding_umap
 
 
 ''' default view size in normalized visualization space '''
 DEFAULT_VIEW_SIZE = 0.25
-''' duration of the experiment '''
-EXPERIMENTS_DURATION = 300
-''' duration of A2VQ demo '''
-DEMO_DURATION = 90
+
 ''' experiment breaks when there are lesser than MIN_UNLABELED unlabeled samples '''
 MIN_UNLABELED = 10
 
-#CHANGE THIS
+''' function for evaluating the embedding '''
+EMBEDDING_FUN = embedding_tsne
 
-''' path with data sets (e.g. mnist)'''
-DATA_PATH = '/home/chris/src/datasets/'
+''' define a name for the data set here, this is used to load e.g. thumbnails from the static directory'''
+FILE_NAME_PREFIX = 'robot'
 
+
+''' path with images (e.g. mnist)'''
+IMAGE_PATH = '/homes/climberg/src/min_workspace/data/objects/'
+# IMAGE_PATH = '/hri/storage/user/climberg/datasets/outdoor/5classes'
 
 ''' the output files are saved in DUMP_PATH'''
-DUMP_PATH = './outputs'
-''' define a name for the data set here, this is used to load e.g. thumbnails from the static directory'''
-FILE_NAME_PREFIX = 'mnist'
-''' define function callback which loads the dataset here, should return features and labels as tuple'''
-FN_LOAD_DATASET = ds_mnist
-
-create_directory_if_not_defined(DUMP_PATH)
+DUMP_PATH = '/homes/climberg/src/min_workspace/data/'
+# DUMP_PATH = '/hri/storage/user/climberg/dumps/a2vq'
 
 # define several paths
-LABEL_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'labels.pkl')
+FEATURES_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'features.pkl')
+IMAGES_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'images.pkl')
+SETTINGS_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'settings.cfg')
+LABEL_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'labels.csv')
 CLASSIFIER_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'classifier.pkl')
 EMBEDDING_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'embedding.pkl')
 THUMBS_DIR = os.path.join('flaskr','static', FILE_NAME_PREFIX+'thumbs')
 THUMBS_DIR_HTTP = os.path.join('static', FILE_NAME_PREFIX+'thumbs')
 VIEW_SIZE_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'view_size.pkl')
+
+create_directory_if_not_defined(DUMP_PATH)

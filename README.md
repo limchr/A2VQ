@@ -2,7 +2,7 @@
 
 ## Description
 
-In this project are all the files required to run the active learning approach A2VQ together with the web-based labeling interface. Additionally the experimental setup together with the data recording functionality is integrated within the source for fast replication of all trials from our user study.
+This is the production version of the active learning approach A2VQ together with the web-based labeling interface. It uses no data set but loads images directly from a directory, extracts features of the images, builds an embedding for visualization and effective labeling. 
 
 ## Setup
 
