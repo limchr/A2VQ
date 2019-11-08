@@ -1,0 +1,4 @@
+img, label, embedding_x, embedding_y, features_ind, timestamp, object_ind, depth, yolo_cls, yolo_proba, predicted_label, prediction_confidence, global_pos_x, global_pos_y, img_pos_x, img_pos_y, robot_pos_x, robot_pos_y, robot_head_pos_x, robot_head_pos_y
+1234_0.jpg, owl, 0.31, 0.523, 0, 1234, 0, 3.1, owl, 0.81, owl, 0.6, 3.9, 6.1, 341, 653, 2.4, 5.0, 0.1432, 0,3453
+1234_0.jpg, owl, 0.123, 0.523, 1, 1234, 0, 3.1, owl, 0.81, owl, 0.6, 3.9, 6.1, 341, 653, 2.4, 5.0, 0.1432, 0,3453
+1235_0.jpg, bottle, 0.7543, 0.754, 2, 1235, 0, 3.1, owl, 0.81, owl, 0.6, 3.9, 6.1, 341, 653, 2.4, 5.0, 0.1432, 0,3453
