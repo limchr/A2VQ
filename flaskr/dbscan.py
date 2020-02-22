@@ -35,9 +35,10 @@ from scipy.spatial.distance import cdist
 
 class dbscan:
     ''' implementation of DBSCAN and of DBQE'''
-    def __init__(self,eps,min_pts):
+    def __init__(self,eps,min_pts,cannot_link_mat=None):
         self.eps = eps
         self.min_pts = min_pts
+        self.cannot_link_mat = cannot_link_mat
 
     def fit_rec(self,x):
         self.x = x
@@ -103,6 +104,8 @@ class dbscan:
 
     def region_query(self,i):
         points = self.dists[i] < self.eps
+        if not self.cannot_link_mat is None:
+            points = np.logical_and(points,  np.logical_not(self.cannot_link_mat[i,:]))
         points[i] = False
         return np.where(points)[0]
     @staticmethod

@@ -45,16 +45,25 @@ EMBEDDING_FUN = embedding_tsne
 ''' define a name for the data set here, this is used to load e.g. thumbnails from the static directory'''
 FILE_NAME_PREFIX = 'robot'
 
-''' path with images (e.g. mnist)'''
-IMAGE_PATH = '/homes/climberg/src/min_workspace/data/objects/'
 
-''' path with images (e.g. mnist)'''
-IMAGE_PATH = '/homes/climberg/src/min_workspace/data/objects/'
-# IMAGE_PATH = '/hri/storage/user/climberg/datasets/outdoor/5classes'
+
+DB_BASE_PATH = '/media/fast/climberg/data/object_recordings/cupsnbottleswclutter/'
+
 
 ''' the output files are saved in DUMP_PATH'''
-DUMP_PATH = '/homes/climberg/src/min_workspace/data/'
+DUMP_PATH = os.path.join(DB_BASE_PATH,'dump')
 # DUMP_PATH = '/hri/storage/user/climberg/dumps/a2vq'
+
+CLASS_WISE_DB_PATH = os.path.join(DUMP_PATH,FILE_NAME_PREFIX,'class_wise')
+DB_FILE = os.path.join(DB_BASE_PATH,'objs.db')
+EXPORT_PATH = os.path.join(DB_BASE_PATH,'export')
+
+
+
+''' path with images (e.g. mnist)'''
+IMAGE_PATH = os.path.join(DB_BASE_PATH,'objects')
+# IMAGE_PATH = '/hri/storage/user/climberg/datasets/outdoor/5classes'
+
 
 # define several paths
 FEATURES_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'features.pkl')
@@ -63,8 +72,8 @@ SETTINGS_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'settings.cfg')
 LABEL_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'labels.csv')
 CLASSIFIER_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'classifier.pkl')
 EMBEDDING_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'embedding.pkl')
-THUMBS_DIR = os.path.join('flaskr','static', FILE_NAME_PREFIX+'thumbs')
+THUMBS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),'static', FILE_NAME_PREFIX+'thumbs')
 THUMBS_DIR_HTTP = os.path.join('static', FILE_NAME_PREFIX+'thumbs')
 VIEW_SIZE_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'view_size.pkl')
 
-create_directory_if_not_defined(DUMP_PATH)
+#create_directory_if_not_defined(DUMP_PATH)

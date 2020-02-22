@@ -52,11 +52,12 @@
     <div class="col-md-3">
       <!--<input type="text" class="form-control" id="label_name" placeholder="Labelname" />-->
         <div class="form-group">
-          <select class="form-control" id="label_name">
-            {% for m in label_names %}
-            <option>{{m}}</option>
-            {% endfor %}
-          </select>
+<!--          <select class="form-control" id="label_name">-->
+<!--            {% for m in label_names %}-->
+<!--            <option>{{m}}</option>-->
+<!--            {% endfor %}-->
+<!--          </select>-->
+              <input class="form-control" id="label_name" placeholder="Class Label">
       </div>
     </div>
     <div class="col-md-3">
@@ -66,7 +67,7 @@
       <button class="btn btn-warning btn-block" class="form-control " id="remove_button">Remove Selection</button>
     </div>
         <div class="col-md-3">
-          <a href="embedding_view_query" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Next View</button></a>
+          <a href="query" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Next View</button></a>
     </div>
 
   </div>
@@ -126,7 +127,14 @@ function draw_imgs(){
     img.src = "{{thumb_dir}}/"+pad(indices[i],6)+".jpg"
     img.i = i;
     img.onload = function() {
-      ctx.drawImage(this, x_embedding[this.i][0]*(dim_canvas[0]-dim_img[0])+0,x_embedding[this.i][1]*(dim_canvas[1]-dim_img[1])+0,dim_img[0],dim_img[1]);
+      if(this.height > this.width) {
+        rh = dim_img[0]
+        rw = Math.floor(this.width/this.height * dim_img[0])
+      } else {
+        rw = dim_img[0]
+        rh = Math.floor(this.height/this.width * dim_img[0])
+      }
+      ctx.drawImage(this, x_embedding[this.i][0]*(dim_canvas[0]-rw)+0,x_embedding[this.i][1]*(dim_canvas[1]-rh)+0,rw,rh);
     };
 
   }
@@ -142,8 +150,8 @@ function label_selected(){
   for (var i=0;i<x_embedding.length;++i) {
     for (var s=0;s<selections.length;++s){
       if(selection_intersects(selections[s],[x_embedding[i][0]*(dim_canvas[0]-dim_img[0]) + dim_img[0]/2  , x_embedding[i][1]*(dim_canvas[1]-dim_img[1]) + dim_img[1]/2 ])) {
-        if($.inArray(i, selected) === -1) {
-          selected.push(i);
+        if($.inArray(indices[i], selected) === -1) {
+          selected.push(indices[i]);
         }
       }
     }
@@ -176,7 +184,7 @@ function label_selected(){
                           $('#next_view_button').removeClass('btn-warning');
                               $('#label_button').addClass('btn-primary');
   $('#next_view_button').addClass('btn-success');
-  $('#next_view_link').attr('href', 'embedding_view_query');
+  $('#next_view_link').attr('href', 'query');
 
           },
           error: function(jqXHR) {
@@ -188,7 +196,7 @@ function label_selected(){
                           $('#next_view_button').removeClass('btn-warning');
                               $('#label_button').addClass('btn-primary');
   $('#next_view_button').addClass('btn-success');
-  $('#next_view_link').attr('href', 'embedding_view_query');
+  $('#next_view_link').attr('href', 'query');
 
 
           }
@@ -199,12 +207,14 @@ function label_selected(){
   console.log(selected);
 
   for (var i = selected.length -1; i >= 0; i--){
-    x_embedding.splice(selected[i],1)
-    indices.splice(selected[i],1)
+    ind = indices.indexOf(selected[i]);
+    x_embedding.splice(ind,1)
+    indices.splice(ind,1)
   }
 
 
 }
+
 
 document.addEventListener("DOMContentLoaded", function(event) {
   w = $('#canvas_container').width();
