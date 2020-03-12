@@ -31,6 +31,10 @@
 import os
 from shutil import rmtree
 import numpy as np
+import pandas as pd
+
+import pickle as pkl
+from PIL import Image
 
 def create_directory_if_not_defined(dir):
     if not os.path.exists(dir):
@@ -45,6 +49,11 @@ def delete_files_in_directory(dir,recursive=False):
             elif os.path.isdir(file_path) and recursive: rmtree(file_path)
         except Exception as e:
             print(e)
+
+def get_immediate_subdirectories(a_dir):
+    return [name for name in os.listdir(a_dir)
+            if os.path.isdir(os.path.join(a_dir, name))]
+
 
 def setup_clean_directory(dir):
     create_directory_if_not_defined(dir)
@@ -99,6 +108,53 @@ def get_elements_not_in(arr1, arr2):
         if not a1 in arr2:
             rtn.append(a1)
     return rtn
+
+def write_image(img,file):
+    if np.max(img) <= 1: # is float array
+        pil_img = Image.fromarray((img * 255).astype(np.uint8))
+    else:
+        pil_img = Image.fromarray(img.astype(np.uint8))
+    pil_img.save(file)
+
+
+
+# db helper
+
+def init_db(fields,index=None):
+    'init db with the specified fields which is a tuple of tuples consisting of the type and name of the field'
+    #assert len(columns) == len(types)
+    df = pd.DataFrame(index=None)
+    for t,c in fields:
+        df[c] = pd.Series(dtype=t)
+    if index is not None:
+        df = df.set_index(index)
+    return df
+
+
+def export_db_as_csv(df, export_path):
+    df.to_csv(export_path)
+
+
+def add_db_rows(df, add_dict):
+    types1 = df.dtypes
+    was_empty = True if len(df) == 0 else False
+    if df.index.name is None:
+        df = df.append(add_dict, ignore_index=True)
+    else:
+        df = df.append(pd.Series(add_dict,name=add_dict[df.index.name])).drop_duplicates(subset=df.index.name, keep='last').sort_index()
+
+    types2 = df.dtypes
+    if not was_empty and not (types1 == types2).all():
+        raise TypeError('Typechange detected in data base')
+    else:
+        return df
+
+def read_csv(path):
+    return pd.read_csv(path, header=None).to_numpy()
+def save_csv(data, path):
+    pd.DataFrame(data).to_csv(path, index=False, header=False)
+
+
 
 if __name__ == '__main__':
     list1 = [4,6,1,0]

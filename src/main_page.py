@@ -42,49 +42,63 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 
-from flaskr.helper import *
-from flaskr.intelligent_labeling import *
 
+from a2vq.src.functions import get_labeled_mask, get_unlabeled_mask
 
-import flaskr.functions as fun
-import flaskr.db_file_interface as db_interface
-#import flaskr.db_ros_interface as db_interface
-
-
-
-
-
+# import the file interface for loading everything from harddrive or use the ros interface for using A2VQ within a ROS environment
+import a2vq.src.db_file_interface as db_interface
+#import a2vq.src.db_ros_interface as db_interface
 
 
 '''flask app'''
 app = Flask(__name__)
 
 
+@app.route('/init')
+def init():
+    '''initialize everything (call at first run)'''
+    db_interface.init()
+
+    create_thumbs()
+
+    x = db_interface.load_features()
+    emb = build_embedding(x)
+    db_interface.update_embedding(emb)
+
+    return 'Done'
+
+
+@app.route('/add_labels', methods = ['POST'])
+def add_labels():
+    ''' add labels is executed every time a user has labeled samples with A2VQ. This function is called via AJAX asyncronously. '''
+    print('add labels')
+    print(request.form)
+    label = request.form.get('label')
+    selected = np.array(request.form.getlist('selected[]'), dtype=str)
+
+    indices_selected = np.where(np.array([x in selected for x in db_interface.get_indices()]))[0]
+
+    db_interface.update_labels(indices_selected,label)
+
+    # train classifier with new labeled samples
+    feats = db_interface.load_features()[indices_selected]
+    db_interface.classifier_partial_fit(feats,[label] * len(selected))
+
+    return '{"success": "true"}'
 
 
 #
-# Debugging view of visualization embedding
+# functions for different viewing interfaces
 #
-@app.route('/')
-@app.route('/embedding_view')
-def embedding_view():
-    '''display whole embedding'''
-    try:
-        x_embedding = db_interface.load_embedding()
-        indices = db_interface.get_indices()
-    except:
-        return 'can not create embedding. please call first: /init'
-    return render_template('embedding_view.html', indices =indices.tolist(), x_embedding = x_embedding.tolist(), thumb_dir = THUMBS_DIR_HTTP)
 
-
-@app.route('/query')
+@app.route('/a2vq')
 def embedding_view_query():
-    ''' this page displays A2VQ labeling interface '''
+    ''' query the most informative subview for labeling, parameters like view_size or querying overlap can be set here as local variables '''
 
     # load all dump files
     x_embedding = db_interface.load_embedding()
-    view_size = 0.2
-    overlap = view_size/4
+    view_size = DEFAULT_VIEW_SIZE
+    overlap = DEFAULT_OVERLAP
     feats = db_interface.load_features()
     indices = db_interface.get_indices()
 
@@ -108,55 +122,36 @@ def embedding_view_query():
     return render_template('embedding_view.html', indices = indices_filtered.tolist(), x_embedding = x_embedding_filter_normalized[:,:].tolist(),thumb_dir = THUMBS_DIR_HTTP)
 
 
-@app.route('/add_labels', methods = ['POST'])
-def add_labels():
-    ''' add labels is executed every time a user has labeled samples with A2VQ. This function is called via AJAX asyncronously. '''
-    print('add labels')
-    print(request.form)
-    label = request.form.get('label')
-    selected = np.array(request.form.getlist('selected[]'), dtype=str)
-
-    indices_selected = np.where(np.array([x in selected for x in db_interface.get_indices()]))[0]
-
-    db_interface.update_labels(indices_selected,label)
-
-    # train classifier with new labeled samples
-    feats = db_interface.load_features()[indices_selected]
-    db_interface.classifier_partial_fit(feats,[label] * len(selected))
-
-    return '{"success": "true"}'
+@app.route('/')
+@app.route('/all')
+def embedding_view():
+    '''display whole embedding'''
+    try:
+        x_embedding = db_interface.load_embedding()
+        indices = db_interface.get_indices()
+    except:
+        return 'can not create embedding. please call first: /init'
+    return render_template('embedding_view.html', indices =indices.tolist(), x_embedding = x_embedding.tolist(), thumb_dir = THUMBS_DIR_HTTP)
 
 
-
-
-@app.route('/init')
-def init():
-    '''initialize everything (call at first run)'''
-    db_interface.init()
-
-    create_thumbs()
-
-    x = db_interface.load_features()
-    emb = build_embedding(x)
-    db_interface.update_embedding(emb)
-
-    return 'Done'
-
-@app.route('/embedding_view_partial')
+@app.route('/subview')
 def embedding_view_partial():
-    ''' display a predefined view of embedding '''
+    ''' display a predefined view of embedding. the area of the view can be defined by local variable min_xy and max_xy.'''
     try:
         x_embedding = db_interface.load_embedding()
         indices = db_interface.get_indices()
     except:
         return 'can not create embedding. please call first: /init'
 
-    mask = filter_embedding(x_embedding,(0.2,0.2),(0.6,0.6))
+    min_xy, max_xy = (0.2,0.2),(0.6,0.6)
+
+    mask = filter_embedding(x_embedding,min_xy, max_xy)
     x_embedding_filter_normalized = normalize_features(x_embedding[mask])
     indices_filter = indices[mask]
     return render_template('embedding_view.html', indices = indices_filter.tolist(), x_embedding = x_embedding_filter_normalized.tolist(),thumb_dir = THUMBS_DIR_HTTP)
 
-from flaskr.functions import *
+from a2vq.src.functions import *
+
 
 @app.route('/labeled')
 def embedding_view_labeled():
@@ -166,11 +161,12 @@ def embedding_view_labeled():
         indices = db_interface.get_indices()
     except:
         return 'can not create embedding. please call first: /init'
-    mask = fun.get_labeled_mask()
+    mask = get_labeled_mask()
     x_embedding_filter_normalized = normalize_features(x_embedding[mask])
     indices_filter = indices[mask]
 
     return render_template('embedding_view.html', indices = indices_filter.tolist(), x_embedding = x_embedding_filter_normalized.tolist(),thumb_dir = THUMBS_DIR_HTTP)
+
 
 @app.route('/unlabeled')
 def embedding_view_unlabeled():
@@ -180,13 +176,29 @@ def embedding_view_unlabeled():
         indices = db_interface.get_indices()
     except:
         return 'can not create embedding. please call first: /init'
-    mask = fun.get_unlabeled_mask()
+    mask = get_unlabeled_mask()
     x_embedding_filter_normalized = normalize_features(x_embedding[mask])
     indices_filter = indices[mask]
 
     return render_template('embedding_view.html', indices = indices_filter.tolist(), x_embedding = x_embedding_filter_normalized.tolist(),thumb_dir = THUMBS_DIR_HTTP)
 
+#
+# functions for dataset exportation
+#
 
+@app.route('/export_classwise')
+def export_classwise():
+    from a2vq.src.db_file_interface import export_class_wise
+    export_class_wise()
+    return 'Done creating class-wise db. Go to %s and check if everything is labeled correctly, move / remove incorrect images. all images within directory _UNLABELED_ are removed from the exported dataset. After cleanup call /export_finalize (from the menu)' % (CLASS_WISE_DB_PATH)
+
+
+
+@app.route('/export_finalize')
+def export_finalize():
+    from a2vq.src.db_file_interface import export_simple_cleanup
+    export_simple_cleanup()
+    return 'Done! Your dataset was cleaned and exported to %s!' % (EXPORT_PATH)
 
 if __name__ == '__main__':
     # working_dir = os.path.realpath(__file__)[:-19]

@@ -36,7 +36,7 @@
 
 <html>
 <head>
-  <title>{% block title %}{% endblock %}</title>
+  <title>{% block title %}A2VQ{% endblock %}</title>
 
   <link href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
 
@@ -50,28 +50,24 @@
         <div class="container">
           <div class="row">
             <div class="col-sm-8 col-md-7 py-4">
-              <h4 class="text-white">About</h4>
-              <p class="text-muted">Active label UI alpha 1</p>
+              <h4 class="text-white">A2VQ Production Version</h4>
+              <p class="text-muted"></p>
             </div>
             <div class="col-sm-4 offset-md-1 py-4">
-              <h4 class="text-white">Active Label UI</h4>
+              <h4 class="text-white">Menu</h4>
               <ul class="list-unstyled">
-                <li><b>User study</b></li>
-                <li><a href="new_participant" class="text-white">Inititalize new participant</a></li>
-                <li><a href="experiments_frontpage" class="text-white">Experiments frontpage</a></li>
+                <li><b>Setup</b></li>
+                <li><a href="init" class="text-white">Initialize everything</a></li>
+                <li><b>Label Interfaces</b></li>
+                <li><a href="a2vq" class="text-white">Query views with A2VQ</a></li>
+                <li><a href="all" class="text-white">View all samples</a></li>
+                <li><a href="labeled" class="text-white">View labeled samples</a></li>
+                <li><a href="unlabeled" class="text-white">View unlabeled samples</a></li>
+                <li><a href="subview" class="text-white">View predefined view</a></li>
+                <li><b>Dataset Export</b></li>
+                <li><a href="export_classwise" class="text-white">Export class-wise</a></li>
+                <li><a href="export_finalize" class="text-white">Export cleaned</a></li>
 
-
-
-                <li><b>Debug</b></li>
-                <li><a href="init_db" class="text-white">Initialize data set and thumbnails</a></li>
-                <li><a href="init_labels" class="text-white">Initialize empty labels</a></li>
-                <li><a href="build_embedding" class="text-white">Train new embedding</a></li>
-                <li><a href="embedding_view" class="text-white">Whole Embedding view</a></li>
-              <!--<li><a href="embedding_view_partial" class="text-white">Label view</a></li>-->
-                <li><a href="embedding_view_query" class="text-white">Query view</a></li>
-                <li><a href="embedding_view_labeled" class="text-white">Labeled samples view</a></li>
-                <!--<li><a href="evaluation" class="text-white">Evaluation</a></li>
-                <li><a href="statistics" class="text-white">Statistics</a></li>-->
               </ul>
             </div>
           </div>
@@ -79,9 +75,9 @@
       </div>
       <div class="navbar navbar-dark bg-dark box-shadow">
         <div class="container d-flex justify-content-between">
-          <a href="#" class="navbar-brand d-flex align-items-center">
+          <a href="/" class="navbar-brand d-flex align-items-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-            <strong>Active Label UI</strong>
+            <strong>A2VQ Adaptive Visualization View Querying UI</strong>
           </a>
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader" aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

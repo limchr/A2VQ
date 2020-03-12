@@ -29,12 +29,22 @@
 
 
 import os
-from flaskr.helper import create_directory_if_not_defined
-from flaskr.intelligent_labeling import embedding_tsne, embedding_umap
+from a2vq.src.helper import create_directory_if_not_defined
+
+from sklearn.manifold import TSNE
+def embedding_tsne(x, y=None):
+    x_embedding = TSNE(n_components=2, random_state=42).fit_transform(x)
+    return x_embedding
+
+#todo
+def embedding_umap(x, y=None):
+    pass
 
 
 ''' default view size in normalized visualization space '''
 DEFAULT_VIEW_SIZE = 0.25
+
+DEFAULT_OVERLAP = DEFAULT_VIEW_SIZE/4
 
 ''' experiment breaks when there are lesser than MIN_UNLABELED unlabeled samples '''
 MIN_UNLABELED = 10
@@ -45,35 +55,38 @@ EMBEDDING_FUN = embedding_tsne
 ''' define a name for the data set here, this is used to load e.g. thumbnails from the static directory'''
 FILE_NAME_PREFIX = 'robot'
 
+#
+# CHANGE THIS BEFORE RUNNING
+#
 
+# change this to an empty directory on your hard drive
+ROOT_DB_BASE_PATH = '/media/fast/climberg/test/a2vq'
+# change this to a directory containing images for vizualizing
+IMAGE_PATH = '/media/fast/climberg/test/images'
+#
+# /CHANGE THIS BEFORE RUNNING
+#
 
-DB_BASE_PATH = '/media/fast/climberg/data/object_recordings/cupsnbottleswclutter/'
-
-
-''' the output files are saved in DUMP_PATH'''
-DUMP_PATH = os.path.join(DB_BASE_PATH,'dump')
-# DUMP_PATH = '/hri/storage/user/climberg/dumps/a2vq'
-
-CLASS_WISE_DB_PATH = os.path.join(DUMP_PATH,FILE_NAME_PREFIX,'class_wise')
-DB_FILE = os.path.join(DB_BASE_PATH,'objs.db')
+DB_BASE_PATH = os.path.join(ROOT_DB_BASE_PATH,FILE_NAME_PREFIX)
 EXPORT_PATH = os.path.join(DB_BASE_PATH,'export')
 
 
+''' the output files used for a2vq operation are saved in DUMP_PATH'''
+DUMP_PATH = os.path.join(DB_BASE_PATH,'dump')
+''' when exporting a dataset, first step is to save all labeled samples class-wise to do a manual cleanup step'''
+CLASS_WISE_DB_PATH = os.path.join(DB_BASE_PATH,'class_wise')
+''' here, the db file is saved'''
+DB_FILE = os.path.join(DB_BASE_PATH,'objs.db')
 
-''' path with images (e.g. mnist)'''
-IMAGE_PATH = os.path.join(DB_BASE_PATH,'objects')
-# IMAGE_PATH = '/hri/storage/user/climberg/datasets/outdoor/5classes'
 
+# define several paths (may move this to db_file_interface)
+FEATURES_FILE = os.path.join(DUMP_PATH,'features.pkl')
+IMAGES_FILE = os.path.join(DUMP_PATH,'images.pkl')
+SETTINGS_FILE = os.path.join(DUMP_PATH,'settings.cfg')
+LABEL_FILE = os.path.join(DUMP_PATH,'labels.csv')
+CLASSIFIER_FILE = os.path.join(DUMP_PATH,'classifier.pkl')
+EMBEDDING_FILE = os.path.join(DUMP_PATH,'embedding.pkl')
+VIEW_SIZE_FILE = os.path.join(DUMP_PATH,'view_size.pkl')
 
-# define several paths
-FEATURES_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'features.pkl')
-IMAGES_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'images.pkl')
-SETTINGS_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'settings.cfg')
-LABEL_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'labels.csv')
-CLASSIFIER_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'classifier.pkl')
-EMBEDDING_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'embedding.pkl')
 THUMBS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),'static', FILE_NAME_PREFIX+'thumbs')
 THUMBS_DIR_HTTP = os.path.join('static', FILE_NAME_PREFIX+'thumbs')
-VIEW_SIZE_FILE = os.path.join(DUMP_PATH,FILE_NAME_PREFIX+'view_size.pkl')
-
-#create_directory_if_not_defined(DUMP_PATH)

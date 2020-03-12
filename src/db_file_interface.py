@@ -1,3 +1,33 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2019
+# Christian Limberg
+# Centre of Excellence Cognitive Interaction Technology (CITEC)
+# Bielefeld University
+#
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+# and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+# products derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+
 import numpy as np
 import pandas as pd
 
@@ -5,13 +35,22 @@ import pickle as pkl
 import dill
 
 
-from flaskr.settings import *
+from a2vq.src.settings import *
 
-from common.helper import setup_clean_directory
-from common.data_handler.create_arbitrary_image_ds import feature_extraction_of_arbitrary_image_ds
-from common.helper import save_csv,read_csv
+from a2vq.src.helper import setup_clean_directory
+from a2vq.src.feature_extraction import feature_extraction_of_arbitrary_image_ds
+from a2vq.src.helper import save_csv,read_csv
 
 import PIL.Image as Image
+
+from a2vq.src.helper import get_files_of_type
+from a2vq.src.helper import read_csv
+from a2vq.src.helper import get_immediate_subdirectories
+import h5py
+
+from shutil import copyfile
+
+
 
 def write_image(img,file):
     if np.max(img) <= 1: # is float array
@@ -117,12 +156,9 @@ def get_indices():
 ##############################################
 
 
-
-
-
-def create_class_wise_db():
-    from functions import get_unlabeled_mask
-    from common.images import write_image
+def export_class_wise():
+    from a2vq.src.functions import get_unlabeled_mask
+    from a2vq.src.helper import write_image
     setup_clean_directory(CLASS_WISE_DB_PATH)
     labels = np.array(get_labels())
     imgs = np.array(load_images())
@@ -140,17 +176,40 @@ def create_class_wise_db():
             write_image(img, os.path.join(CLASS_WISE_DB_PATH, label,filename))
 
 
-from common.helper import get_files_of_type
+
+
+def export_simple_cleanup():
+    setup_clean_directory(EXPORT_PATH)
+    setup_clean_directory(os.path.join(EXPORT_PATH,'images'))
+
+    classes = get_immediate_subdirectories(CLASS_WISE_DB_PATH)
+    del (classes[classes.index("_UNLABELED_")])
+    from a2vq.src.helper import init_db, add_db_rows, export_db_as_csv
+    df = init_db([('str','sample'),('str','label')], index='sample')
+    for cls in classes:
+        img_filenames = get_files_of_type(os.path.join(CLASS_WISE_DB_PATH, cls), '.jpg')
+        indices = [x[:-4] for x in img_filenames]
+        for i in indices:
+            df = add_db_rows(df, {'sample': i, 'label': cls})
+            copyfile(os.path.join(IMAGE_PATH, i + '.jpg'), os.path.join(EXPORT_PATH, 'images', i + '.jpg'))
+    export_db_as_csv(df, os.path.join(EXPORT_PATH,'labels.csv'))
+
+    indexes_all = read_csv(file(os.path.join(LABEL_FILE), 'rb'))[:, 0]
+    features_all = pkl.load(file(FEATURES_FILE,'rb'))
+    features_selected = np.zeros((0,np.shape(features_all)[1]))
+    for i in df['sample']:
+        samples_index = np.where(indexes_all == i+'.jpg')[0][0]
+        features_all[samples_index]
+        features_selected = np.vstack((features_selected,features_all[samples_index]))
+    h5f = h5py.File(os.path.join(EXPORT_PATH, 'features.hdf'), 'w')
+    h5f.create_dataset('index', data=np.array(df['sample'],dtype='str'))
+    h5f.create_dataset('feats', data=features_selected)
+    h5f.close()
 
 
 
-def label_db():
+def label_db_robotdataset():
     db = pkl.load(open(DB_FILE,'rb'))
-
-    def get_immediate_subdirectories(a_dir):
-        return [name for name in os.listdir(a_dir)
-                if os.path.isdir(os.path.join(a_dir, name))]
-
     classes = get_immediate_subdirectories(CLASS_WISE_DB_PATH)
 
     del (classes[classes.index("_UNLABELED_")])
@@ -166,7 +225,8 @@ def label_db():
 
     db.to_pickle(os.path.join(DUMP_PATH,'labeled.db'))
 
-def export_db():
+
+def export_db_robotdataset():
     setup_clean_directory(EXPORT_PATH)
     setup_clean_directory(os.path.join(EXPORT_PATH,'images'))
 
@@ -174,7 +234,6 @@ def export_db():
     #drop samples where there was no label given
     db = db.drop(db.index[db.label.isnull()])
     #export features
-    import h5py
     h5f = h5py.File(os.path.join(EXPORT_PATH, 'features.hdf'), 'w')
     h5f.create_dataset('index', data=db.index.to_numpy(dtype='string'))
     h5f.create_dataset('feats', data=np.stack(db.feats.to_numpy(),axis=0))
@@ -182,8 +241,6 @@ def export_db():
     # db.feats.to_hdf(os.path.join(EXPORT_PATH, 'features.hdf'), 'features', mode='w', format='table')
 
     imgs = get_files_of_type(IMAGE_PATH, '.jpg')
-
-
 
     #drop different lines from property file that are not needed for export
     properties_file = db.drop(columns=['feats', 'img', 'embedding_x', 'embedding_y', 'label_pred', 'confidence_pred', 'instance_id', 'index'])
@@ -200,7 +257,6 @@ def export_db():
         if not imgs[i][:-4] in properties_file.index:
             remove_imgs.append(imgs[i][:-4])
 
-    from shutil import copyfile
 
     for img in properties_file.index: # also to ensure that all images are there
         if not img in remove_imgs:
@@ -212,7 +268,8 @@ def export_db():
 
 if __name__ == '__main__':
     print('main')
-    # create_class_wise_db()
-    # label_db()
-    export_db()
+    ## export robotic dataset
+    # export_class_wise()
+    # label_db_robotdataset()
+    # export_db_robotdataset()
     #db = pkl.load(open(os.path.join(DUMP_PATH,'labeled.db'),'rb'))

@@ -29,26 +29,49 @@
 
 
 import numpy as np
+
+
+from a2vq.src.helper import normalize_features
 import pickle as pkl
-import random
-import pdb
-import math
 
-from sklearn.manifold import TSNE
+import numpy as np
+import pandas as pd
+import os
 
-from flaskr.helper import normalize_features
+from a2vq.src.settings import *
+
+from a2vq.src.helper import write_image
+from a2vq.src.helper import setup_clean_directory
+
+def create_thumbs():
+    from a2vq.src.main_page import db_interface
+    images_file = db_interface.load_images()
+    indices = db_interface.get_indices()
+    setup_clean_directory(THUMBS_DIR)
+    for ind,img in zip(indices,images_file):
+        write_image(img, os.path.join(THUMBS_DIR, ind if ind[4:] == '.jpg' else ind+'.jpg'))
+
+
+def build_embedding(x):
+    '''build embedding and save as dump for fast loading'''
+    x_embedding = EMBEDDING_FUN(x)
+    x_embedding_normalized = normalize_features(x_embedding)
+    return x_embedding_normalized
+
+def get_unlabeled_mask():
+    '''return all unlabeled_indices'''
+    from a2vq.src.main_page import db_interface
+    return pd.isnull(db_interface.get_labels())
+
+def get_labeled_mask():
+    '''return all labeled indices'''
+    return np.invert(get_unlabeled_mask())
 
 
 
 
 
-def embedding_tsne(x, y=None):
-    x_embedding = TSNE(n_components=2, random_state=42).fit_transform(x)
-    return x_embedding
 
-#todo
-def embedding_umap(x, y=None):
-    pass
 
 
 def a2vq_querying(x_embedding_normalized, mask_unlabeled, probas, view_size, overlap):
@@ -98,4 +121,5 @@ def filter_embedding(x_embedding, anchor_point, selection_size):
     return mask
 
 
-
+if __name__ == '__main__':
+    pass

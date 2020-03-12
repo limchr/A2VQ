@@ -2,25 +2,36 @@
 
 ## Description
 
-This is the production version of the active learning approach A2VQ together with the web-based labeling interface. It uses no data set but loads images directly from a directory, extracts features of the images, builds an embedding for visualization and effective labeling. 
+This is the production version of the active learning approach A2VQ together with the web-based labeling interface. It uses no data set but loads images directly from a directory, extracts features of the images as described in the paper, builds an embedding for visualization and effective labeling. The labeled data can be saved class-wise, cleaned and exported together with the labels, images and calculated features.
+
+If you are interested in the code used in our user study for handling participants and e.g. record all their input data, check out [this commit](https://github.com/limchr/A2VQ/tree/3ef8988b338398fa8f2b73692f25d3215728c919).
 
 ## Setup
 
-To run the project you need python3. Additionally you need the package flask, configparser and sklearn:
+To run the project you need python2 or python3. Additionally you need to install the following packages:
 
 ```
-pip install flask configparser sklearn
+pip install flask configparser sklearn keras
 ```
 
-To test the project we implemented data set functions for using the mnist data set. First change DATA_PATH variable in flaskr/settings.py to the directory where your data sets are stored. To use the MNIST data set you have to install [python-mnist](https://pypi.org/project/python-mnist/) package with pip and download the mnist files from [here](http://yann.lecun.com/exdb/mnist/). The downloaded archives have to be extracted in a subdirectory of DATA_PATH called 'mnist_original'.
+For feature extraction we use VGG deep convoluational net and weights from the imagenet competition. Clone this to a directory within your PYTHONPATH and rename it with:
 
 ```
-pip install python-mnist 
+git clone https://github.com/fchollet/deep-learning-models
+mv deep-learning-models deeplearningmodels
 ```
 
+The code will automatically download the appropriate weights for feature extraction. Last but not least clone A2VQ also in a directory within your PYTHONPATH:
+
+```
+git clone https://github.com/limchr/a2vq
+```
 
 ## Run
-To start the interface web page, run main_page with python3:
+
+To set everything up for your data, open settings.py and change ROOT_DB_BASE_PATH to an empty directory on your hard drive and IMAGE_PATH to a path with images to be labeled. Those images have to be JPEGS with the filename extension .jpg
+
+To start the interface web page, run main_page with python:
 
 ```
 python3 main_page.py
@@ -28,17 +39,16 @@ python3 main_page.py
 
 This is starting flask within a debugging server on localhost on port 5000.
 
-To prepare experiments for the first run, exec the following pages:
+To initialize everything (feature extraction, dump file creations, embedding fitting) open your favorite webbrowser with this url:
 
 ```
-http://localhost:5000/init_db
-http://localhost:5000/init_labels
-http://localhost:5000/build_embedding
+firefox http://localhost:5000/init
 ```
 
-for setting some initial files and building the t-SNE embedding for visualization.
+Now open the main page with http://localhost:5000/
+You should see an embedding view with all images from your defined image path. You can navigate to other embedding views within the menu (click on the upper right button to view all pages). Also you can export the labeled data and clean it up automatically.
 
-Now you can go to the main page http://localhost:5000/ and register a new participant with an ID. On the next screen you can run all trials used in the experiment. Please note that we can not provide the data set used in the paper because of copyright issues.
+
 
 ## Usage
 
@@ -47,16 +57,24 @@ The following gif is showing the user interface while labeling MNIST. However, p
 
 ![A2VQ workflow](./img/a2vq.gif)
 
-The captured user interactions are saved under the subdirectory 'participants' in several csv files.
+## Modifications
+
+To change the approach for creating the embedding, change EMBEDDING_FUN in settings.py to another callback.
+
+To change the feature extraction, edit feature_extraction.py
+
+To change the trained classifier from GLVQ to something else, edit the respective functions within db_file_interface.py
+
 
 ## Used Software
 
 The web-based Interface makes use of [JQuery](https://jquery.org/) and [Bootstrap](https://getbootstrap.com/) which is both licenced under MIT license. 
 
-## Additional Literature
-[Christian Limberg, Heiko Wersing, Helge Ritter (2018)<br>
-Efficient Accuracy Estimation for Instance-Based Incremental Active Learning<br>
-European Symposium on Artificial Neural Networks (ESANN)](http://www.honda-ri.de/pubs/pdf/2125.pdf)
+## Reference
+
+If you find our work usefull in any way, please consider citing us:
+
+[Limberg, C., Krieger, K., Wersing, H., & Ritter, H. (2019, September). <br>Active Learning for Image Recognition Using a Visualization-Based User Interface. <br>In International Conference on Artificial Neural Networks (pp. 495-506). Springer, Cham.](https://pub.uni-bielefeld.de/download/2939051/2939052/icann2019_submitted.pdf)
 
 ## License
 Copyright (C) 2019<br>

@@ -1,4 +1,3 @@
-<!--
 #!/usr/bin/env python
 #
 # Copyright (C) 2019
@@ -27,51 +26,3 @@
 # WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
--->
-
-
-<!-- template for showing the frontpage for starting a trial -->
-
-
-{% extends 'base.html' %}
-
-{% block header %}
-  <h1>{% block title %}Experiments frontpage{% endblock %}</h1>
-{% endblock %}
-
-{% block content %}
-
-
-<a href="/start_experiment?type=demo"><button class="form-control btn {% if finished_demo %}btn-success{% else %}btn-warning{% endif %}">Experiment A Demo</button></a>
-
-{% if finished_demo %}
-<a href="/start_experiment?type=a"><button class="form-control btn {% if finished_a %}btn-success{% else %}btn-warning{% endif %}">Experiment A</button></a>
-{% endif %}
-
-<br>
-<a href="/start_experiment?type=b"><button class="form-control btn {% if finished_b %}btn-success{% else %}btn-warning{% endif %}">Experiment B</button></a>
-<br>
-<a href="/start_experiment?type=c"><button class="form-control btn {% if finished_c %}btn-success{% else %}btn-warning{% endif %}">Experiment C</button></a>
-<br>
-<a href="/start_experiment?type=d"><button class="form-control btn {% if finished_d %}btn-success{% else %}btn-warning{% endif %}">Experiment D</button></a>
-
-{% if finished_a %}
-
-{% if finished_b %}
-
-{% if finished_c %}
-
-{% if finished_d %}
-
-<h3>Study finished! Thanks for participating and don't forget the sweets!</h3>
-
-{% endif %}
-
-{% endif %}
-
-{% endif %}
-
-{% endif %}
-
-
-{% endblock %}

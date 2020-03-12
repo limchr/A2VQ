@@ -35,12 +35,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Embedding label view{% endblock %}</h1>
-
-
-    {% if started %}
-    {{ current_duration }} seconds left for this experiment
-    {% endif %}
+  <h1>{% block title %}{% endblock %}</h1>
 
 
 {% endblock %}
@@ -67,7 +62,7 @@
       <button class="btn btn-warning btn-block" class="form-control " id="remove_button">Remove Selection</button>
     </div>
         <div class="col-md-3">
-          <a href="query" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Next View</button></a>
+          <a href="a2vq" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Next View</button></a>
     </div>
 
   </div>
@@ -184,7 +179,7 @@ function label_selected(){
                           $('#next_view_button').removeClass('btn-warning');
                               $('#label_button').addClass('btn-primary');
   $('#next_view_button').addClass('btn-success');
-  $('#next_view_link').attr('href', 'query');
+  $('#next_view_link').attr('href', 'a2vq');
 
           },
           error: function(jqXHR) {
@@ -196,7 +191,7 @@ function label_selected(){
                           $('#next_view_button').removeClass('btn-warning');
                               $('#label_button').addClass('btn-primary');
   $('#next_view_button').addClass('btn-success');
-  $('#next_view_link').attr('href', 'query');
+  $('#next_view_link').attr('href', 'a2vq');
 
 
           }
