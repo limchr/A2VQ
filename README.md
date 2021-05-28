@@ -11,17 +11,11 @@ If you are interested in the code used in our user study for handling participan
 To run the project you need python2 or python3. Additionally you need to install the following packages:
 
 ```
-pip install flask configparser sklearn keras
+pip install flask configparser sklearn keras pandas dill tensorflow-gpu umap-learn
 ```
 
-For feature extraction we use VGG deep convoluational net and weights from the imagenet competition. Clone this to a directory within your PYTHONPATH and rename it with:
 
-```
-git clone https://github.com/fchollet/deep-learning-models
-mv deep-learning-models deeplearningmodels
-```
-
-The code will automatically download the appropriate weights for feature extraction. Last but not least clone A2VQ also in a directory within your PYTHONPATH:
+Last but not least clone A2VQ also in a directory within your PYTHONPATH:
 
 ```
 git clone https://github.com/limchr/a2vq
@@ -29,20 +23,20 @@ git clone https://github.com/limchr/a2vq
 
 ## Run
 
-To set everything up for your data, open settings.py and change ROOT_DB_BASE_PATH to an empty directory on your hard drive and IMAGE_PATH to a path with images to be labeled. Those images have to be JPEGS with the filename extension .jpg
+For running A2VQ several interfaces are possible. Default is the hard drive interface that loads everything from disk and also calculates features for a selected images directory. To setup the respective paths, go to settings.py and change the paths to a directory containing images. Those images have to be JPEGS with the filename extension .jpg. Also a directory has to be defined that is used for storing dump files like extracted features, the thumbnails or labels.
 
-To start the interface web page, run main_page with python:
+To start the interface web page, run main.py with python:
 
 ```
-python3 main_page.py
+python3 main.py
 ```
 
 This is starting flask within a debugging server on localhost on port 5000.
 
-To initialize everything (feature extraction, dump file creations, embedding fitting) open your favorite webbrowser with this url:
+To initialize the harddrive interface (feature extraction, dump file creations) open your favorite webbrowser with this url:
 
 ```
-firefox http://localhost:5000/init
+firefox http://localhost:5000/setup
 ```
 
 Now open the main page with http://localhost:5000/

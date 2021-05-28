@@ -34,8 +34,8 @@ from scipy.spatial.distance import cdist
 from math import exp
 import matplotlib.pyplot as plt
 import sys
-class glvq():
 
+class glvq():
     def __init__(self,max_prototypes_per_class=5,learning_rate=2,strech_factor=10,placement_strategy=None):
         """Constructor takes some additional arguments like max_prototypes_per_class, learning_rate. Additionally a
         placement strategy can passed as a callback. The function takes one sample x and corresponding label y and

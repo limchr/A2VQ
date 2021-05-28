@@ -44,26 +44,34 @@
 
 <div class="container mt-4">
   <div class="row">
-    <div class="col-md-3">
-      <!--<input type="text" class="form-control" id="label_name" placeholder="Labelname" />-->
+    <div class="col-md-2">
         <div class="form-group">
-<!--          <select class="form-control" id="label_name">-->
-<!--            {% for m in label_names %}-->
-<!--            <option>{{m}}</option>-->
-<!--            {% endfor %}-->
-<!--          </select>-->
-              <input class="form-control" id="label_name" placeholder="Class Label">
+          <select class="form-control" id="label_name">
+            {% for m in classes %}
+            <option>{{m}}</option>
+            {% endfor %}
+          </select>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <button class="btn btn-primary btn-block" class="form-control " id="label_button">Label Selection</button>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <button class="btn btn-warning btn-block" class="form-control " id="remove_button">Remove Selection</button>
     </div>
-        <div class="col-md-3">
-          <a href="a2vq" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Next View</button></a>
+        <div class="col-md-2">
+          <a href="/" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Reset</button></a>
     </div>
+
+    <div class="col-md-2">
+        <input class="form-control" id="class_label" placeholder="Class Label">
+    </div>
+    <div class="col-md-2">
+          <button id="new_class_button" class="btn btn-success btn-block" class="form-control ">Introduce new Class</button>
+    </div>
+
+
+
 
   </div>
 </div>
@@ -78,167 +86,9 @@
 </div>
 
 <script>
-
-function pad(num, size) {
-    var s = num+"";
-    while (s.length < size) s = "0" + s;
-    return s;
-}
-
-function get_mouse_xy(can, e) {
-  var element = can, offsetX = 0, offsetY = 0, mx, my;
-  if (element.offsetParent !== undefined) {
-    do {
-      offsetX += element.offsetLeft;
-      offsetY += element.offsetTop;
-    } while ((element = element.offsetParent));
-  }
-  mx = e.pageX - offsetX;
-  my = e.pageY - offsetY;
-  return {x: mx, y: my};
-}
-
-function selection_intersects(selection, point) {
-  return point[0] >= selection[0] && point[0] <= selection[1] && point[1] >= selection[2] && point[1] <= selection[3];
-}
-
-
-
-function draw_everything(){
-  ctx.clearRect(0, 0, c.width, c.height);
-  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-  ctx.fillRect(0, 0, c.width, c.height);
-
-  ctx2.clearRect(0, 0, c.width, c.height);
-
-  draw_imgs();
-  draw_selections();
-}
-
-
-function draw_imgs(){
-  for (var i=0;i<x_embedding.length;++i) {
-    var img = new Image;
-    img.src = "{{thumb_dir}}/"+pad(indices[i],6)+".jpg"
-    img.i = i;
-    img.onload = function() {
-      if(this.height > this.width) {
-        rh = dim_img[0]
-        rw = Math.floor(this.width/this.height * dim_img[0])
-      } else {
-        rw = dim_img[0]
-        rh = Math.floor(this.height/this.width * dim_img[0])
-      }
-      ctx.drawImage(this, x_embedding[this.i][0]*(dim_canvas[0]-rw)+0,x_embedding[this.i][1]*(dim_canvas[1]-rh)+0,rw,rh);
-    };
-
-  }
-}
-
-
-
-function label_selected(){
-
-
-
-  selected = []
-  for (var i=0;i<x_embedding.length;++i) {
-    for (var s=0;s<selections.length;++s){
-      if(selection_intersects(selections[s],[x_embedding[i][0]*(dim_canvas[0]-dim_img[0]) + dim_img[0]/2  , x_embedding[i][1]*(dim_canvas[1]-dim_img[1]) + dim_img[1]/2 ])) {
-        if($.inArray(indices[i], selected) === -1) {
-          selected.push(indices[i]);
-        }
-      }
-    }
-  }
-  if(selected.length == 0){
-  return;
-  }
-
-  $('#label_button').addClass('disabled');
-  $('#next_view_button').addClass('disabled');
-
-    $('#label_button').addClass('btn-warning');
-  $('#next_view_button').addClass('btn-warning');
-  $('#next_view_link').attr('href', '#');
-
-   $.ajax({
-          type: "POST",
-          cache: false,
-          data:{'label':$('#label_name').val(),'indices': indices, 'selected': selected, 'num_rects': selections.length},
-          url: '/add_labels',
-          dataType: "json",
-          success: function(data) {
-            if(data["success"] == 'false'){
-              window.open(data["open_page"],"_self");
-            }
-              console.log(data);
-                $('#label_button').removeClass('disabled');
-                          $('#next_view_button').removeClass('disabled');
-                                          $('#label_button').removeClass('btn-warning');
-                          $('#next_view_button').removeClass('btn-warning');
-                              $('#label_button').addClass('btn-primary');
-  $('#next_view_button').addClass('btn-success');
-  $('#next_view_link').attr('href', 'a2vq');
-
-          },
-          error: function(jqXHR) {
-              alert("error: " + jqXHR.status);
-              console.log(jqXHR);
-                $('#label_button').removeClass('disabled');
-                          $('#next_view_button').removeClass('disabled');
-                                          $('#label_button').removeClass('btn-warning');
-                          $('#next_view_button').removeClass('btn-warning');
-                              $('#label_button').addClass('btn-primary');
-  $('#next_view_button').addClass('btn-success');
-  $('#next_view_link').attr('href', 'a2vq');
-
-
-          }
-
-      });
-
-  selected.sort(function(a,b){ return a-b; });
-  console.log(selected);
-
-  for (var i = selected.length -1; i >= 0; i--){
-    ind = indices.indexOf(selected[i]);
-    x_embedding.splice(ind,1)
-    indices.splice(ind,1)
-  }
-
-
-}
-
-
-document.addEventListener("DOMContentLoaded", function(event) {
-  w = $('#canvas_container').width();
-  dim_canvas = [w,w*0.75];
-  dim_img = [dim_canvas[0]/15,dim_canvas[0]/15];
-  c.width = dim_canvas[0];
-  c.height = dim_canvas[1];
-
-  ctx.clearRect(0, 0, c.width, c.height);
-  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-  ctx.fillRect(0, 0, c.width, c.height);
-
-
-  c2.width = dim_canvas[0];
-  c2.height = dim_canvas[1];
-  ctx2.clearRect(0, 0, c2.width, c2.height);
-
-
-
-
-  draw_imgs();
-
-  //register callbacks
-  $('#label_button').click(function(){label_selected();selections = []; draw_everything();});
-  $('#remove_button').click(function(){selections = []; draw_everything();});
-});
-
-
-
+//
+// global variables
+//
 
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
@@ -246,86 +96,26 @@ var ctx = c.getContext("2d");
 var c2 = document.getElementById("mySelectionCanvas");
 var ctx2 = c2.getContext("2d");
 
-
 var dim_canvas = [1500,800];
-var dim_img = [50,50];
+var dim_img = [60,60];
 
-var x_embedding = {{x_embedding|tojson}};
-var indices = {{indices|tojson}};
+var samples = {{samples|tojson}};
+var class_names = {{classes|tojson}};
 
 var selection_begin = false;
 var selection_start = {};
 var selections = [];
 
 
-function draw_selections(){
-    ctx2.clearRect(0, 0, c.width, c.height);
-    ctx2.fillStyle = 'rgba(77, 100, 141, .5)';
-    for (var s=0;s<selections.length;++s){
-      ctx2.fillRect(selections[s][0],selections[s][2],(selections[s][1]-selections[s][0]),(selections[s][3]-selections[s][2]));
-    }
-}
-function draw_selection(x,y,w,h){
-    ctx2.fillStyle = 'rgba(40, 54, 85, .5)';
-    ctx2.fillRect(x,y,w,h);
-}
-
-
-c2.addEventListener('mousedown', function(e) {
-    if(selection_begin) return;
-    selection_begin = true;
-    selection_start = get_mouse_xy(c2, e);
-    console.log('selection was started on '+selection_start.x+' '+selection_start.y);
-
-  }, true);
-
-c2.addEventListener('mousemove', function(e) {
-    if(selection_begin) {
-      selection_moved = get_mouse_xy(c2, e);
-      console.log('selection was moved on '+selection_moved.x+' '+selection_moved.y);
-
-      draw_selections();
-      min_x = Math.min(selection_start.x, selection_moved.x)
-      max_x = Math.max(selection_start.x, selection_moved.x)
-      min_y = Math.min(selection_start.y, selection_moved.y)
-      max_y = Math.max(selection_start.y, selection_moved.y)
-
-      draw_selection(min_x,min_y,(max_x-min_x),(max_y-min_y));
-
-    }
-
-
-  }, true);
-
-
-c2.addEventListener('mouseup', function(e) {
-    if(selection_begin) {
-      selection_begin = false;
-      var mouse = get_mouse_xy(c2, e);
-
-      if (mouse.x == selection_start.x && mouse.y == selection_start.y){
-        console.log('selection too small, skipping');
-        return;
-      }
-
-      console.log('selection was ended on '+mouse.x+' '+mouse.y);
-
-      min_x = Math.min(selection_start.x, mouse.x)
-      max_x = Math.max(selection_start.x, mouse.x)
-      min_y = Math.min(selection_start.y, mouse.y)
-      max_y = Math.max(selection_start.y, mouse.y)
-
-      selections.push([min_x,max_x,min_y,max_y]);
-
-      draw_selections();
-
-
-    }
-
-  }, true);
-
-
-
 </script>
+
+<script src="/static/js/utils.js"></script>
+
+<script src="/static/js/draw.js"></script>
+
+<script src="/static/js/events.js"></script>
+
+<script src="/static/js/label.js"></script>
+
 
 {% endblock %}

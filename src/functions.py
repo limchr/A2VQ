@@ -31,46 +31,25 @@
 import numpy as np
 
 
-from a2vq.src.helper import normalize_features
-import pickle as pkl
-
-import numpy as np
-import pandas as pd
-import os
-
-from a2vq.src.settings import *
-
-from a2vq.src.helper import write_image
-from a2vq.src.helper import setup_clean_directory
-
-def create_thumbs():
-    from a2vq.src.main_page import db_interface
-    images_file = db_interface.load_images()
-    indices = db_interface.get_indices()
-    setup_clean_directory(THUMBS_DIR)
-    for ind,img in zip(indices,images_file):
-        write_image(img, os.path.join(THUMBS_DIR, ind if ind[4:] == '.jpg' else ind+'.jpg'))
-
-
-def build_embedding(x):
-    '''build embedding and save as dump for fast loading'''
-    x_embedding = EMBEDDING_FUN(x)
+def embedding_tsne(x, y=None):
+    from sklearn.manifold import TSNE
+    x_embedding = TSNE(n_components=2, random_state=42).fit_transform(x)
     x_embedding_normalized = normalize_features(x_embedding)
     return x_embedding_normalized
 
-def get_unlabeled_mask():
-    '''return all unlabeled_indices'''
-    from a2vq.src.main_page import db_interface
-    return pd.isnull(db_interface.get_labels())
+def embedding_umap(x, y=None):
+    import umap
+    from sklearn.preprocessing import LabelEncoder
 
-def get_labeled_mask():
-    '''return all labeled indices'''
-    return np.invert(get_unlabeled_mask())
-
-
-
-
-
+    if not y is None:
+        none_idx = y == None
+        int_labels = LabelEncoder().fit_transform(y)
+        int_labels[none_idx] = -1 # umap is representing unlabeled data as -1
+        x_embedding = umap.UMAP().fit_transform(x,y=int_labels)
+    else:
+        x_embedding = umap.UMAP().fit_transform(x)
+    x_embedding_normalized = normalize_features(x_embedding)
+    return x_embedding_normalized
 
 
 
@@ -104,7 +83,6 @@ def a2vq_querying(x_embedding_normalized, mask_unlabeled, probas, view_size, ove
 
     max_inds = cost_map.flatten().argsort()[::-1]
 
-
     max_views = np.array([np.unravel_index(ind, cost_map.shape) for ind in max_inds])
     max_ranges = [(view_range[x],view_range[y]) for x,y in max_views]
     max_costs = cost_map.flatten()[max_inds]
@@ -119,6 +97,14 @@ def filter_embedding(x_embedding, anchor_point, selection_size):
     mask = np.logical_and(mask, x_embedding_normalized[:,1] > anchor_point[1])
     mask = np.logical_and(mask, x_embedding_normalized[:, 1] < anchor_point[1]+selection_size[1])
     return mask
+
+
+def normalize_features(features, scale = (0,1)):
+    normalized = np.zeros(features.shape)
+    for i in range(features.shape[1]):
+        min, max = np.min(features[:, i]), np.max(features[:, i])
+        normalized[:, i] = (features[:, i] - min) / (max - min) * (scale[1]-scale[0]) + scale[0]
+    return normalized
 
 
 if __name__ == '__main__':

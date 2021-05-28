@@ -33,8 +33,11 @@ from shutil import rmtree
 import numpy as np
 import pandas as pd
 
-import pickle as pkl
 from PIL import Image
+
+import io
+from base64 import encodebytes
+
 
 def create_directory_if_not_defined(dir):
     if not os.path.exists(dir):
@@ -82,14 +85,12 @@ def array_is_in_array(arr1,arr2):
     return rtn
 
 
-
-def normalize_features(features, scale = (0,1)):
-    normalized = np.zeros(features.shape)
-    for i in range(features.shape[1]):
-        min, max = np.min(features[:, i]), np.max(features[:, i])
-        normalized[:, i] = (features[:, i] - min) / (max - min) * (scale[1]-scale[0]) + scale[0]
-    return normalized
-
+def encode_img(img):
+    pil_img = Image.fromarray(img) # reads the PIL image
+    byte_arr = io.BytesIO()
+    pil_img.save(byte_arr, format='PNG') # convert the PIL image to byte array
+    encoded_img = encodebytes(byte_arr.getvalue()).decode('ascii') # encode as base64
+    return encoded_img
 
 def get_intersection(arr1, arr2):
     rtn = []
@@ -115,8 +116,6 @@ def write_image(img,file):
     else:
         pil_img = Image.fromarray(img.astype(np.uint8))
     pil_img.save(file)
-
-
 
 # db helper
 
@@ -150,7 +149,7 @@ def add_db_rows(df, add_dict):
         return df
 
 def read_csv(path):
-    return pd.read_csv(path, header=None).to_numpy()
+    return np.array(pd.read_csv(path, header=None))
 def save_csv(data, path):
     pd.DataFrame(data).to_csv(path, index=False, header=False)
 
@@ -163,3 +162,4 @@ if __name__ == '__main__':
     print(get_intersection(list1,list2))
     print(get_union(list1,list2))
     print(get_elements_not_in(list1,list2))
+

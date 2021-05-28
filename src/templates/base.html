@@ -58,6 +58,7 @@
               <ul class="list-unstyled">
                 <li><b>Setup</b></li>
                 <li><a href="init" class="text-white">Initialize everything</a></li>
+                <li><a href="recalculate_embedding" class="text-white">Recalculate embedding</a></li>
                 <li><b>Label Interfaces</b></li>
                 <li><a href="a2vq" class="text-white">Query views with A2VQ</a></li>
                 <li><a href="all" class="text-white">View all samples</a></li>
@@ -88,6 +89,11 @@
 
 <main>
 
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap/bootstrap.min.js') }}"></script>
+
+
+
 <div class="container" id="inner_content" >
   {% block header %}{% endblock %}
   {% block content %}{% endblock %}
@@ -95,8 +101,6 @@
 
   </main>
 
-    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap/bootstrap.min.js') }}"></script>
 
     {% block bottombody %}{% endblock %}
 
