@@ -32,6 +32,8 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 
+import traceback
+
 
 from a2vq.src.settings import HD_IMAGE_PATH, HD_OUT_PATH
 
@@ -62,6 +64,11 @@ def new_class(class_label):
     interface.add_new_class(class_label)
     return embedding_view()
 
+@app.route('/generate_embedding')
+def generate_embedding():
+    """initialize the interface (if needed, depends on the actual implementation), (call at first run)"""
+    interface.generate_embedding()
+    return embedding_view()
 
 
 @app.route('/interface_tunnel_<method_name>')
@@ -70,6 +77,7 @@ def interface_tunnel(method_name):
     try:
         rtn = str(getattr(interface,method_name)())
     except:
+        traceback.print_exc()
         rtn = 'invalid request'
     return rtn
 
@@ -80,6 +88,30 @@ def add_labels():
     ids = request.form.getlist('ids[]') # note that label is converted to str
     interface.update_sample_labels(ids,label)
     return '{"success": "true"}'
+
+@app.route('/a2vq', methods = ['POST'])
+def a2vq():
+    """add labels is executed every time a user has labeled samples with A2VQ. This function is called via AJAX asyncronously."""
+    ids = interface.get_sample_ids()
+    x_embedding = interface.get_sample_embeddings(ids)
+    probas = interface.get_sample_probas(ids)
+    label_mask = interface.get_sample_labels(ids) == None
+
+    from a2vq.src.functions import a2vq_querying
+
+    view_size = 0.2
+    overlap = 0.05
+
+
+    views, scores = a2vq_querying(x_embedding, label_mask, probas, view_size, overlap)
+
+
+    from flask import jsonify
+    result = jsonify(views=list(views), scores=list(scores), view_size=view_size, overlap=overlap)
+    # result.get_data(as_text=True)
+
+    return result
+
 
 
 #
@@ -100,8 +132,43 @@ def embedding_view():
             batch[i] = {'id':i,'embedding':list(e),'thumb':t,'label':l}
         classes = interface.get_unique_classes()
     except:
-        return 'can not create embedding. please call first: /setup'
+        traceback.print_exc()
+        return 'can not show interface. have you called /setup?'
     return render_template('embedding_view.html', samples=batch, classes=classes)
+
+@app.route('/<x>/<y>/<w>/<h>')
+def embedding_view_filtered(x,y,w,h):
+    """main embedding view for displaying whole embedding"""
+    x = float(x)
+    y = float(y)
+    w = float(w)
+    h = float(h)
+    try:
+        ids = interface.get_sample_ids()
+        x_embedding = interface.get_sample_embeddings(ids)
+        thumbs = interface.get_sample_thumbs(ids)
+        labels = interface.get_sample_labels(ids)
+
+        from a2vq.src.functions import filter_embedding, normalize_features
+        import numpy as np
+        mask = filter_embedding(x_embedding, [x,y], [w,h])
+        # mask_combined = np.logical_and(mask_queried, mask_unlabeled)
+        ids = [int(xx) for xx in np.array(ids)[mask]]
+        x_embedding = normalize_features(x_embedding[mask])
+        thumbs = thumbs[mask]
+        labels = labels[mask]
+
+
+        batch = {}
+        for i, e, t, l in zip(ids, x_embedding, thumbs, labels):
+            batch[str(i)] = {'id': str(i), 'embedding': [float(e[0]),float(e[1])], 'thumb': str(t), 'label': str(l)}
+        classes = interface.get_unique_classes()
+    except:
+        traceback.print_exc()
+        return 'can not show interface. have you called /setup?'
+    return render_template('embedding_view.html', samples=batch, classes=classes)
+
+
 
 
 if __name__ == '__main__':

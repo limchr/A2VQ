@@ -41,13 +41,16 @@ def embedding_umap(x, y=None):
     import umap
     from sklearn.preprocessing import LabelEncoder
 
+    params = {'n_neighbors': 100, 'random_state': 42}
+
     if not y is None:
         none_idx = y == None
+        y[none_idx] = '__unlabeled__' # older sklearn versions don't accept None
         int_labels = LabelEncoder().fit_transform(y)
         int_labels[none_idx] = -1 # umap is representing unlabeled data as -1
-        x_embedding = umap.UMAP().fit_transform(x,y=int_labels)
+        x_embedding = umap.UMAP(**params).fit_transform(x,y=int_labels)
     else:
-        x_embedding = umap.UMAP().fit_transform(x)
+        x_embedding = umap.UMAP(**params).fit_transform(x)
     x_embedding_normalized = normalize_features(x_embedding)
     return x_embedding_normalized
 
@@ -92,10 +95,9 @@ def a2vq_querying(x_embedding_normalized, mask_unlabeled, probas, view_size, ove
 
 def filter_embedding(x_embedding, anchor_point, selection_size):
     ''' get boolean mask of samples within a specified selection bb rect (view)'''
-    x_embedding_normalized = normalize_features(x_embedding)
-    mask = np.logical_and(x_embedding_normalized[:,0] > anchor_point[0], x_embedding_normalized[:,0] < anchor_point[0]+selection_size[0])
-    mask = np.logical_and(mask, x_embedding_normalized[:,1] > anchor_point[1])
-    mask = np.logical_and(mask, x_embedding_normalized[:, 1] < anchor_point[1]+selection_size[1])
+    mask = np.logical_and(x_embedding[:,0] > anchor_point[0], x_embedding[:,0] < anchor_point[0]+selection_size[0])
+    mask = np.logical_and(mask, x_embedding[:,1] > anchor_point[1])
+    mask = np.logical_and(mask, x_embedding[:, 1] < anchor_point[1]+selection_size[1])
     return mask
 
 

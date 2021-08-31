@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+</body>
+</html>
+
+<script src="d3.min.js"></script>
+
+<script>
+
+var h = 500;
+var w = 750;
+
+var s = 50; // size of images
+
+var data = [{
+  'name': 'asdf',
+  'x': 0.3,
+  'y': 0.8,
+  'img': "img_45.jpg"
+}, {
+  'name': 'qwer',
+  'x': 0.8,
+  'y': 0.7,
+  'img': "img_410.jpg"
+
+}, {
+  'name': 'erty',
+  'x': 0.6,
+  'y': 0.2,
+  'img': "img_45.jpg"
+
+}, {
+  'name': 'tyui',
+  'x': 0.4,
+  'y': 0.9,
+  'img': "img_410.jpg"
+
+}, {
+  'name': 'fgj',
+  'x': 0.0,
+  'y': 0.3,
+  'img': "img_45.jpg"
+
+}, {
+  'name': 'xcvb',
+  'x': 1,
+  'y': 0.2,
+  'img': "img_410.jpg"
+}];
+
+
+var xScale = d3.scaleLinear().range([0, w]).domain([0, 1]).nice();
+var yScale = d3.scaleLinear().range([0, h]).domain([0, 1]).nice();
+
+
+var svg = d3.select('body').append('svg')
+.attr("id", 'svg_container')
+.attr("width", w)
+.attr("height", h)
+.attr("style", "outline: thin solid blue")
+.on("mouseup", mouseup)
+.on("contextmenu", function(event) {
+	handle_right_click(event);
+});
+
+var zoom_group = svg.append("g").attr("id","zoom_group").attr("transform", "translate(0,0)");
+
+var origin = 0;
+
+
+var thumbs = zoom_group
+.selectAll("image")
+.data(data)
+.enter()
+.append("svg:image")
+.attr("x", d => xScale(d.x)-s/2)
+.attr("y", d => yScale(d.y)-s/2)
+.attr("xlink:href",function(d) {return d.img})
+.attr("height", s)
+.attr("width", s);
+
+
+svg.call(d3.zoom()
+  .extent([[0, 0], [w, h]])
+  .scaleExtent([1, 8]) //?
+  .on("zoom", zoomed));
+
+
+function zoomed({transform}) {
+	zoom_group.attr("transform", transform);
+    var zoom_scale = d3.zoomTransform(svg.node()).k;
+    var img_size = s/zoom_scale;
+    var margin = (s - img_size)/2;
+
+    var imgs = Array.from(document.getElementById('svg_container').querySelectorAll("image"));
+
+     for(i=0;i<imgs.length;i++) {
+        imgs[i].x.baseVal.value = xScale(data[i].x) - s/2 + margin;
+        imgs[i].y.baseVal.value = yScale(data[i].y) - s/2 + margin;
+     }
+
+    svg.selectAll('image')
+    .attr('width',img_size)
+    .attr('height',img_size);
+}
+
+
+
+function transform_point(point) {
+		var svg_dom = document.getElementById('svg_container');
+		var zoom_dom = document.getElementById('zoom_group');
+
+		svgpoint = svg_dom.createSVGPoint()
+		svgpoint.x = point[0];
+		svgpoint.y = point[1];
+		var icmt = zoom_dom.getScreenCTM().inverse();
+		transformed_pt = svgpoint.matrixTransform(icmt);
+		//console.log('x='+transformed_pt.x+' y='+transformed_pt.y);
+		return transformed_pt;
+	
+	}
+
+function handle_right_click(event) {
+    console.log('right click');
+		event.preventDefault();
+		var mousepoint = d3.pointer(event);
+        origin = transform_point(mousepoint);
+		
+		rect = zoom_group.append("rect")
+			.attr("x", origin.x)
+			.attr("y", origin.y)
+			.attr("height", 0)
+			.attr("width", 0)
+            .attr("style", "fill:rgba(150,150,150,0.3);stroke-width:1;stroke:rgb(0,0,0)");
+		svg.on("mousemove", mousemove);
+}
+
+function mousemove(event) {
+    var m = d3.pointer(event);
+    var t = transform_point(m);
+	var x_min = Math.min(origin.x, t.x);
+	var x_max = Math.max(origin.x, t.x);
+	var y_min = Math.min(origin.y, t.y);
+	var y_max = Math.max(origin.y, t.y);
+
+    rect.attr("x", x_min)
+        .attr("y", y_min)
+        .attr("width", x_max-x_min)
+        .attr("height", y_max-y_min)
+        ;
+}
+
+function mouseup() {
+    console.log('mouse up');
+    svg.on("mousemove", null);
+}
+
+
+
+
+
+</script>
+
+
+
+
+
+

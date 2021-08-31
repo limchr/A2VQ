@@ -76,6 +76,9 @@ class harddrive_interface(data_interface):
         """loads images, calculates features, and creates thumbnails and dumps everything to harddisk"""
         setup_clean_directory(self.DB_BASE_PATH)
         setup_clean_directory(self.DUMP_PATH)
+        if(hasattr(self,'embedding')):
+            del self.embedding
+
 
         print('>> extract features')
         feats, image_list, img_tuple = feature_extraction_of_arbitrary_image_ds(self.IMAGE_PATH)
@@ -107,13 +110,17 @@ class harddrive_interface(data_interface):
         """this methods returns the line index of the csv as ids since it is assumed that this will not change (may be
         different in other interfaces)
         """
-        return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))
+        return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))[0:5000:40]
+        #return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))
 
     def get_sample_features(self, ids):
         """get features of queried samples"""
         with open(self.FEATURES_FILE, 'rb') as f:
             feats = pkl.load(f)
-        return feats[ids]
+        if ids is None:
+            return feats
+        else:
+            return feats[ids]
 
     def get_sample_thumbs(self, ids):
         """get thumbnails of queried samples"""
@@ -123,15 +130,33 @@ class harddrive_interface(data_interface):
 
     def get_sample_labels(self, ids):
         """get labels of queried samples"""
-        csv = read_csv(self.LABEL_FILE)[:, 1][ids]
-        csv[pd.isnull(csv)] = None # replace nans with None
+        csv = read_csv(self.LABEL_FILE)[:, 1]
+        csv[pd.isnull(csv)] = None
+        if not (ids is None):
+            csv = csv[ids]
         return csv
+
+        # # gt for cups n bottles
+        # df = pd.read_csv('/home/chris/datasets/cupsnbottles/properties.csv')
+        # df.index = df['index']
+        # a = [x[:-4] for x in read_csv(self.LABEL_FILE)[:, 0]]
+        # gt = np.array(df.loc[a].label)
+        # none_ids = np.random.choice(len(gt), len(gt)//2, replace=False)
+        # # gt[none_ids] = None
+        # return gt[ids]
+
+        # csv[pd.isnull(csv)] = None # replace nans with None
+        # return csv
 
     def update_sample_labels(self, ids, y):
         """update the labels for specified ids"""
+        int_ids = [ int(i) for i in ids]
         labels = read_csv(self.LABEL_FILE)
-        labels[[ int(i) for i in ids], 1] = y
+        labels[int_ids, 1] = y
         save_csv(labels, self.LABEL_FILE)
+
+        self._fit_classifier(int_ids)
+
 
     def get_unique_classes(self):
         """get a dict with unique class names"""
@@ -163,16 +188,14 @@ class harddrive_interface(data_interface):
     # embedding methods
     def get_sample_embeddings(self, ids):
         """returns the embedding of specified indices"""
-        if(hasattr(self,'embedding')):
-            return self.embedding
-        else:
+        if not hasattr(self,'embedding'):
             self.generate_embedding() # calculate embedding with all ids
         return self.embedding[ids]
 
     def generate_embedding(self):
         """generates the embedding to self.embedding"""
-        x = self.get_sample_features(self.get_sample_ids())
-        y = self.get_sample_labels(self.get_sample_ids())
+        x = self.get_sample_features(None)
+        y = self.get_sample_labels(None)
         self.embedding = EMBEDDING_FUN(x, y)
 
 
@@ -181,25 +204,27 @@ class harddrive_interface(data_interface):
     # optional methods for using a2vq querying approach
     def get_sample_probas(self, ids):
         """returns classifier probability estimates of specified samples by ids"""
-        return self._classifier.predict_proba(self.get_features()[ids])
+        self._load_classifier()
+        return self._classifier.predict_proba(self.get_sample_features(ids))
 
     def get_sample_preds(self, ids):
         """returns classifier estimates of specified samples by ids"""
-        return self._classifier.predict(self.get_features()[ids])
+        self._load_classifier()
+        return self._classifier.predict(self.get_sample_features(ids))
 
 
     def _load_classifier(self):
         with open(self.CLASSIFIER_FILE, 'rb') as f:
-            cls = dill.load(f)
-        return cls
+            self._classifier = dill.load(f)
 
-    def _dump_classifier(self, cls):
+    def _dump_classifier(self):
         with open(self.CLASSIFIER_FILE, 'wb') as f:
-            dill.dump(cls, f)
+            dill.dump(self._classifier, f)
 
-    def _fit_classifier(self,cls,ids):
+    def _fit_classifier(self,ids):
         """updates the classifier with new labeled data for updated probability estimates"""
-        self._classifier.fit(self.get_features(ids), self.get_labels(ids))
+        self._load_classifier()
+        self._classifier.fit(self.get_sample_features(ids), self.get_sample_labels(ids))
         self._dump_classifier()
 
 

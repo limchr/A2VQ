@@ -41,8 +41,11 @@ EMBEDDING_FUN = embedding_umap
 # Parameters for hard disk interface
 #
 
-HD_IMAGE_PATH = '/hri/localdisk/climberg/data/cupsnbottles/small'
-HD_OUT_PATH = '/hri/localdisk/climberg/data/a2vq_base_db'
+# HD_IMAGE_PATH = '/hri/localdisk/climberg/data/cupsnbottles/small'
+# HD_OUT_PATH = '/hri/localdisk/climberg/data/a2vq_base_db'
+
+HD_IMAGE_PATH = '/home/chris/datasets/cupsnbottles/images'
+HD_OUT_PATH = '/home/chris/datasets/cupsnbottles/tmp'
 
 
 

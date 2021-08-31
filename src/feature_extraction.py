@@ -91,7 +91,7 @@ def feature_extraction_of_arbitrary_image_ds(image_dir, image_list=None):
     img_tuple = read_images(image_paths)
     img_tuple_rgb = convert_image_tuple_to_rgb(img_tuple)
     #img_tuple_resized = resize_image_tuple(img_tuple_rgb,size=(299,299,3))
-    img_tuple_resized = resize_image_tuple_to_max_edge_length(img_tuple_rgb, 200)
+    img_tuple_resized = resize_image_tuple_to_max_edge_length(img_tuple_rgb, 80)
 
     deep_feats = get_deep_feats(img_tuple_rgb,'vgg16')
 

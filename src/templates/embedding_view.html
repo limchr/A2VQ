@@ -44,7 +44,7 @@
 
 <div class="container mt-4">
   <div class="row">
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="form-group">
           <select class="form-control" id="label_name">
             {% for m in classes %}
@@ -53,20 +53,27 @@
           </select>
       </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
       <button class="btn btn-primary btn-block" class="form-control " id="label_button">Label Selection</button>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
       <button class="btn btn-warning btn-block" class="form-control " id="remove_button">Remove Selection</button>
     </div>
-        <div class="col-md-2">
-          <a href="/" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Reset</button></a>
+        <div class="col-md-3">
+          <a href="/generate_embedding" id="next_view_link" class="text-white"><button id="next_view_button" class="btn btn-success btn-block" class="form-control ">Regenerate Embedding</button></a>
     </div>
 
-    <div class="col-md-2">
+  </div>
+  <div class="row">
+
+    <div class="col-md-6">
+          <button id="querying_button" class="btn btn-success btn-block" class="form-control ">View Querying</button>
+    </div>
+
+    <div class="col-md-3">
         <input class="form-control" id="class_label" placeholder="Class Label">
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
           <button id="new_class_button" class="btn btn-success btn-block" class="form-control ">Introduce new Class</button>
     </div>
 
@@ -77,12 +84,13 @@
 </div>
 <div class="container mt-3" id="canvas_container" style="position: relative;">
 
+<!--
 <canvas id="myCanvas" style="z-index: 5; position: absolute; top: 0px; border:1px solid #d3d3d3; cursor: crosshair;">
 </canvas>
 
 <canvas id="mySelectionCanvas" style="z-index: 15; position: absolute; top: 0px; border:1px solid #d3d3d3; cursor: crosshair;">
 </canvas>
-
+-->
 </div>
 
 <script>
@@ -90,32 +98,78 @@
 // global variables
 //
 
-var c = document.getElementById("myCanvas");
-var ctx = c.getContext("2d");
-
-var c2 = document.getElementById("mySelectionCanvas");
-var ctx2 = c2.getContext("2d");
-
-var dim_canvas = [1500,800];
-var dim_img = [60,60];
-
+// sample objects containing embedding coordinates, labels and thumbnails in base64
 var samples = {{samples|tojson}};
+// all available classe names for the dropdown menu
 var class_names = {{classes|tojson}};
-
-var selection_begin = false;
-var selection_start = {};
+// the selected samples (indices) are stored in this list
 var selections = [];
+
+// definition of several distinguishable colors for labeling in dropdown and thumbnails
+colors = {};
+colors.names = {
+    blue: "#0000ff",
+    cyan: "#00ffff",
+    gold: "#ffd700",
+    green: "#008000",
+    indigo: "#4b0082",
+    khaki: "#f0e68c",
+    lime: "#00ff00",
+    magenta: "#ff00ff",
+    navy: "#000080",
+    olive: "#808000",
+    orange: "#ffa500",
+    pink: "#ffc0cb",
+    purple: "#800080",
+    silver: "#c0c0c0",
+    darkblue: "#00008b",
+    darkcyan: "#008b8b",
+    darkgreen: "#006400",
+    darkkhaki: "#bdb76b",
+    darkmagenta: "#8b008b",
+    darkolivegreen: "#556b2f",
+    darkorange: "#ff8c00",
+    darksalmon: "#e9967a",
+    darkviolet: "#9400d3",
+    fuchsia: "#ff00ff",
+    white: "#ffffff",
+    yellow: "#ffff00",
+    brown: "#a52a2a",
+    lightgreen: "#90ee90",
+    maroon: "#800000",
+};
+colors.geti = function(i) {
+	return Object.values(this.names)[i];
+}
+
+// height of svg
+var h = 500;
+// width of svg (is calculated by div width (dynamically))
+var w = -1;
+
+var s = 80; // size of image thumbnails
+
+
+// d3 scale for x axis
+var xScale;
+// d3 scale for y axis
+var yScale;
+// svg element
+var svg;
+// zoom group inside svg element
+var zoom_group;
+// d3 variable for image thumbs
+var thumbs;
+
+
+// helper variable for mouse selection rectangles
+var origin = 0;
 
 
 </script>
 
-<script src="/static/js/utils.js"></script>
-
-<script src="/static/js/draw.js"></script>
-
-<script src="/static/js/events.js"></script>
-
-<script src="/static/js/label.js"></script>
+<!-- all the frontend labeling logic is implemented here -->
+<script src="/static/js/label_interface.js"></script>
 
 
 {% endblock %}
