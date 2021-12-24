@@ -110,8 +110,10 @@ class harddrive_interface(data_interface):
         """this methods returns the line index of the csv as ids since it is assumed that this will not change (may be
         different in other interfaces)
         """
-        return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))[0:5000:40]
-        #return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))
+        ## return only a fraction of the data set for debugging purposes
+        #return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))[0:5000:40]
+        #return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))[0:5000:2]
+        return list(range(len(read_csv(self.LABEL_FILE)[:, 0])))
 
     def get_sample_features(self, ids):
         """get features of queried samples"""
